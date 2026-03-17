@@ -133,6 +133,7 @@
 
     <!-- Auth bar -->
     <div id="authBar" style="margin-top:20px;background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:12px;padding:14px 16px;">
+        <div id="authDebug" style="font-size:0.6rem;color:#f85149;margin-bottom:6px;display:none;">Iniciando Firebase...</div>
         <div id="authLoggedOut">
             <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
                 <div>
@@ -2054,6 +2055,8 @@ function initFirebase(retries){
             console.warn('Firebase SDK no cargó — modo offline activo');
             const lo=document.getElementById('authLoggedOut');
             if(lo) lo.innerHTML='<div style="font-size:0.7rem;color:var(--gray);">Sin conexión — historial local activo</div>';
+            const dbg=document.getElementById('authDebug');
+            if(dbg){dbg.textContent='Firebase no cargó — verifica tu conexión';dbg.style.display='block';}
         }
         return;
     }
@@ -2071,31 +2074,42 @@ function initFirebase(retries){
         db=firebase.firestore();
         rtdb=firebase.database();
         setupAuthListener();
-        console.log('Firebase inicializado');
+        console.log('Firebase inicializado correctamente ✓');
+        // Update debug status in auth bar
+        const dbg=document.getElementById('authDebug');
+        if(dbg) dbg.style.display='none';
     }catch(e){
         console.warn('Error Firebase:',e.message);
+        const dbg=document.getElementById('authDebug');
+        if(dbg) dbg.textContent='Error Firebase: '+e.message;
     }
 }
 
 function setupAuthListener(){
-    // Process redirect result when returning from Google login
-    auth.getRedirectResult().then(function(result){
-        if(result&&result.user){
-            showToast('Bienvenido, '+(result.user.displayName||result.user.email)+'!');
-        }
-    }).catch(function(e){
-        if(e.code&&e.code!=='auth/no-auth-event'&&e.code!=='auth/null-user'){
-            console.warn('getRedirectResult:',e.code);
-        }
-    });
-
-    // This fires immediately if user is already logged in (persisted session)
+    // onAuthStateChanged fires on every page load with current auth state
     auth.onAuthStateChanged(function(user){
         currentUser=user;
         updateAuthUI(user);
         if(user){
             migrateLocalToCloud();
             updateAutoHistoryBtn();
+        }
+    });
+
+    // getRedirectResult handles the case when returning from Google sign-in
+    // It must update UI manually since onAuthStateChanged may have already fired with null
+    auth.getRedirectResult().then(function(result){
+        if(result&&result.user){
+            currentUser=result.user;
+            updateAuthUI(result.user);
+            migrateLocalToCloud();
+            updateAutoHistoryBtn();
+            showToast('Bienvenido, '+(result.user.displayName||result.user.email)+'!');
+        }
+    }).catch(function(e){
+        if(e.code&&e.code!=='auth/no-auth-event'&&e.code!=='auth/null-user'){
+            showToast('Error al iniciar sesión: '+e.message,'#f85149');
+            console.warn('getRedirectResult error:',e.code,e.message);
         }
     });
 }
