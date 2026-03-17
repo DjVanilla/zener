@@ -142,7 +142,7 @@
                 <span style="margin-right:5px;">G</span>Iniciar sesión
             </button>
         </div>
-        <div id="authLoggedIn" style="display:none;align-items:center;justify-content:space-between;gap:10px;">
+        <div id="authLoggedIn" style="display:none;align-items:center;justify-content:space-between;gap:10px;" hidden>
             <div style="display:flex;align-items:center;gap:10px;">
                 <img id="authAvatar" src="" width="30" height="30" style="border-radius:50%;display:none;" alt="avatar"/>
                 <div>
@@ -2048,7 +2048,6 @@ function initFirebase(retries){
             setTimeout(()=>initFirebase(retries+1),500);
         } else {
             console.warn('Firebase SDK no cargó — modo offline activo');
-            // Show auth bar as offline
             const lo=document.getElementById('authLoggedOut');
             if(lo) lo.innerHTML='<div style="font-size:0.7rem;color:var(--gray);">Sin conexión — historial local activo</div>';
         }
@@ -2060,38 +2059,53 @@ function initFirebase(retries){
         db=firebase.firestore();
         rtdb=firebase.database();
 
-        // Handle redirect result (called when Google redirects back after login)
-        auth.getRedirectResult().then(function(result){
+        // Set persistence to LOCAL so login survives page reloads/redirects
+        auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).then(function(){
+            // Handle redirect result first
+            return auth.getRedirectResult();
+        }).then(function(result){
             if(result&&result.user){
-                showToast('Sesión iniciada — '+result.user.displayName);
+                showToast('Sesión iniciada — '+(result.user.displayName||result.user.email));
             }
         }).catch(function(e){
-            if(e.code!=='auth/no-auth-event'){
-                showToast('Error al iniciar sesión: '+e.message,'#f85149');
+            if(e.code&&e.code!=='auth/no-auth-event'){
+                console.warn('Redirect result error:',e.code);
             }
         });
 
-        auth.onAuthStateChanged(async function(user){
+        // Listen for auth state — fires on page load if user is already logged in
+        auth.onAuthStateChanged(function(user){
             currentUser=user;
-            const lo=document.getElementById('authLoggedOut');
-            const li=document.getElementById('authLoggedIn');
-            if(!lo||!li) return;
+            updateAuthUI(user);
             if(user){
-                lo.style.display='none';
-                li.style.display='flex';
-                document.getElementById('authName').textContent=user.displayName||user.email;
-                const av=document.getElementById('authAvatar');
-                if(user.photoURL){av.src=user.photoURL;av.style.display='block';}
-                await migrateLocalToCloud();
+                migrateLocalToCloud();
                 updateAutoHistoryBtn();
-            } else {
-                lo.style.display='flex';
-                li.style.display='none';
             }
         });
+
         console.log('Firebase inicializado correctamente');
     }catch(e){
         console.warn('Error al inicializar Firebase:',e.message);
+    }
+}
+
+function updateAuthUI(user){
+    const lo=document.getElementById('authLoggedOut');
+    const li=document.getElementById('authLoggedIn');
+    if(!lo||!li) return;
+    if(user){
+        lo.style.cssText='display:none';
+        li.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:10px;';
+        const nameEl=document.getElementById('authName');
+        if(nameEl) nameEl.textContent=user.displayName||user.email||'Usuario';
+        const av=document.getElementById('authAvatar');
+        if(av&&user.photoURL){
+            av.src=user.photoURL;
+            av.style.display='block';
+        }
+    } else {
+        lo.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:10px;';
+        li.style.cssText='display:none';
     }
 }
 // ── CLOUD HISTORY ──────────────────────────────────────────────────────────
