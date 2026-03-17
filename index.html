@@ -133,24 +133,28 @@
 
     <!-- Auth bar -->
     <div id="authBar" style="margin-top:20px;background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:12px;padding:14px 16px;">
-        <div id="authLoggedOut" style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
-            <div>
-                <div style="font-size:0.65rem;font-weight:bold;color:var(--gray);text-transform:uppercase;letter-spacing:1px;">Historial en la nube</div>
-                <div style="font-size:0.72rem;color:var(--gray);margin-top:3px;">Inicia sesión para sincronizar en todos tus dispositivos</div>
-            </div>
-            <button onclick="signInWithGoogle()" style="background:#1f6feb;border:none;color:#fff;padding:9px 14px;border-radius:8px;cursor:pointer;font-size:0.72rem;font-weight:bold;white-space:nowrap;-webkit-appearance:none;appearance:none;">
-                <span style="margin-right:5px;">G</span>Iniciar sesión
-            </button>
-        </div>
-        <div id="authLoggedIn" style="display:none;align-items:center;justify-content:space-between;gap:10px;" hidden>
-            <div style="display:flex;align-items:center;gap:10px;">
-                <img id="authAvatar" src="" width="30" height="30" style="border-radius:50%;display:none;" alt="avatar"/>
+        <div id="authLoggedOut">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
                 <div>
-                    <div id="authName" style="font-size:0.75rem;font-weight:bold;color:var(--white);"></div>
-                    <div style="font-size:0.6rem;color:#3fb950;margin-top:1px;">● Historial sincronizado</div>
+                    <div style="font-size:0.65rem;font-weight:bold;color:var(--gray);text-transform:uppercase;letter-spacing:1px;">Historial en la nube</div>
+                    <div style="font-size:0.72rem;color:var(--gray);margin-top:3px;">Inicia sesión para sincronizar en todos tus dispositivos</div>
                 </div>
+                <button onclick="signInWithGoogle()" style="background:#1f6feb;border:none;color:#fff;padding:9px 14px;border-radius:8px;cursor:pointer;font-size:0.72rem;font-weight:bold;white-space:nowrap;-webkit-appearance:none;appearance:none;">
+                    <span style="margin-right:5px;">G</span>Iniciar sesión
+                </button>
             </div>
-            <button onclick="signOutUser()" style="background:transparent;border:1px solid var(--border);color:var(--gray);padding:7px 12px;border-radius:8px;cursor:pointer;font-size:0.65rem;font-weight:bold;-webkit-appearance:none;appearance:none;">Cerrar sesión</button>
+        </div>
+        <div id="authLoggedIn" style="display:none;">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <img id="authAvatar" src="" width="30" height="30" style="border-radius:50%;display:none;" alt=""/>
+                    <div>
+                        <div id="authName" style="font-size:0.75rem;font-weight:bold;color:var(--white);"></div>
+                        <div style="font-size:0.6rem;color:#3fb950;margin-top:1px;">● Historial sincronizado</div>
+                    </div>
+                </div>
+                <button onclick="signOutUser()" style="background:transparent;border:1px solid var(--border);color:var(--gray);padding:7px 12px;border-radius:8px;cursor:pointer;font-size:0.65rem;font-weight:bold;-webkit-appearance:none;appearance:none;">Cerrar sesión</button>
+            </div>
         </div>
     </div>
 
@@ -2094,18 +2098,16 @@ function updateAuthUI(user){
     const li=document.getElementById('authLoggedIn');
     if(!lo||!li) return;
     if(user){
-        lo.style.cssText='display:none';
-        li.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:10px;';
+        lo.style.display='none';
+        li.style.display='block';
+        li.removeAttribute('hidden');
         const nameEl=document.getElementById('authName');
         if(nameEl) nameEl.textContent=user.displayName||user.email||'Usuario';
         const av=document.getElementById('authAvatar');
-        if(av&&user.photoURL){
-            av.src=user.photoURL;
-            av.style.display='block';
-        }
+        if(av&&user.photoURL){av.src=user.photoURL;av.style.display='block';}
     } else {
-        lo.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:10px;';
-        li.style.cssText='display:none';
+        lo.style.display='block';
+        li.style.display='none';
     }
 }
 // ── CLOUD HISTORY ──────────────────────────────────────────────────────────
