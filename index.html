@@ -2049,7 +2049,7 @@ function initFirebase(retries){
     retries=retries||0;
     if(typeof firebase==='undefined'){
         if(retries<20){
-            setTimeout(()=>initFirebase(retries+1),500);
+            setTimeout(function(){initFirebase(retries+1);},500);
         } else {
             console.warn('Firebase SDK no cargó — modo offline activo');
             const lo=document.getElementById('authLoggedOut');
@@ -2057,40 +2057,47 @@ function initFirebase(retries){
         }
         return;
     }
+    // Prevent double initialization
+    if(firebase.apps&&firebase.apps.length>0){
+        auth=firebase.auth();
+        db=firebase.firestore();
+        rtdb=firebase.database();
+        setupAuthListener();
+        return;
+    }
     try{
         firebase.initializeApp(firebaseConfig);
         auth=firebase.auth();
         db=firebase.firestore();
         rtdb=firebase.database();
-
-        // Set persistence to LOCAL so login survives page reloads/redirects
-        auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).then(function(){
-            // Handle redirect result first
-            return auth.getRedirectResult();
-        }).then(function(result){
-            if(result&&result.user){
-                showToast('Sesión iniciada — '+(result.user.displayName||result.user.email));
-            }
-        }).catch(function(e){
-            if(e.code&&e.code!=='auth/no-auth-event'){
-                console.warn('Redirect result error:',e.code);
-            }
-        });
-
-        // Listen for auth state — fires on page load if user is already logged in
-        auth.onAuthStateChanged(function(user){
-            currentUser=user;
-            updateAuthUI(user);
-            if(user){
-                migrateLocalToCloud();
-                updateAutoHistoryBtn();
-            }
-        });
-
-        console.log('Firebase inicializado correctamente');
+        setupAuthListener();
+        console.log('Firebase inicializado');
     }catch(e){
-        console.warn('Error al inicializar Firebase:',e.message);
+        console.warn('Error Firebase:',e.message);
     }
+}
+
+function setupAuthListener(){
+    // Process redirect result when returning from Google login
+    auth.getRedirectResult().then(function(result){
+        if(result&&result.user){
+            showToast('Bienvenido, '+(result.user.displayName||result.user.email)+'!');
+        }
+    }).catch(function(e){
+        if(e.code&&e.code!=='auth/no-auth-event'&&e.code!=='auth/null-user'){
+            console.warn('getRedirectResult:',e.code);
+        }
+    });
+
+    // This fires immediately if user is already logged in (persisted session)
+    auth.onAuthStateChanged(function(user){
+        currentUser=user;
+        updateAuthUI(user);
+        if(user){
+            migrateLocalToCloud();
+            updateAutoHistoryBtn();
+        }
+    });
 }
 
 function updateAuthUI(user){
