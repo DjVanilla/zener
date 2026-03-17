@@ -560,18 +560,18 @@
     <div class="subtitle">Sesión Grupal</div>
 
     <!-- Crear sala -->
-    <div style="background:rgba(31,111,235,0.08);border:1px solid rgba(31,111,235,0.3);border-radius:14px;padding:20px;margin-bottom:16px;">
-        <div style="font-size:0.65rem;font-weight:bold;color:#58a6ff;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px;">Crear Sala — Emisor</div>
+    <div class="config-card" style="margin-bottom:16px;">
+        <div style="font-size:0.65rem;font-weight:bold;color:#58a6ff;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px;">🎯 Crear Sala — Emisor</div>
         <p style="font-size:0.78rem;color:var(--gray);line-height:1.6;margin:0 0 14px 0;">Tú controlas las cartas. Comparte el código con los Receptores.</p>
-        <button onclick="createPartyRoom()" class="btn-primary" style="padding:14px;">Crear Sala Nueva</button>
+        <button onclick="createPartyRoom()" class="btn-primary">Crear Sala Nueva</button>
     </div>
 
     <!-- Unirse a sala -->
-    <div style="background:rgba(63,185,80,0.06);border:1px solid rgba(63,185,80,0.25);border-radius:14px;padding:20px;margin-bottom:16px;">
-        <div style="font-size:0.65rem;font-weight:bold;color:#3fb950;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px;">Unirse a Sala — Receptor</div>
+    <div class="config-card" style="margin-bottom:16px;">
+        <div style="font-size:0.65rem;font-weight:bold;color:#3fb950;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px;">🔗 Unirse a Sala — Receptor</div>
         <p style="font-size:0.78rem;color:var(--gray);line-height:1.6;margin:0 0 14px 0;">Ingresa el código de 4 letras que te compartió el Emisor.</p>
-        <div style="display:flex;gap:10px;">
-            <input type="text" id="partyCodeInput" maxlength="4" placeholder="ABCD" style="text-transform:uppercase;text-align:center;font-size:1.4rem;font-weight:bold;letter-spacing:8px;flex:1;"/>
+        <div style="display:flex;gap:10px;margin-top:8px;">
+            <input type="text" id="partyCodeInput" maxlength="4" placeholder="ABCD" style="text-transform:uppercase;text-align:center;font-size:1.4rem;font-weight:bold;letter-spacing:8px;flex:1;padding:14px;background:#010409;border:1px solid var(--border);color:var(--white);border-radius:10px;"/>
             <button onclick="joinPartyRoom()" style="background:#3fb950;border:none;color:#000;padding:14px 20px;border-radius:10px;font-weight:bold;cursor:pointer;font-size:0.85rem;-webkit-appearance:none;appearance:none;">Unirse</button>
         </div>
     </div>
@@ -2218,12 +2218,17 @@ function sharePartyLink(){
 }
 
 function showPartyLobby(){
-    if(!currentUser){
+    // Check both our variable and Firebase's own currentUser as fallback
+    const user=currentUser||(auth&&auth.currentUser)||null;
+    if(!user){
         showToast('Inicia sesión con Google para usar el Modo Party','#f85149');
         return;
     }
+    // Update currentUser in case it was stale
+    currentUser=user;
     hideAll();
     document.getElementById('scr-party-lobby').classList.remove('hidden');
+    window.scrollTo(0,0);
 }
 
 function cancelParty(){
