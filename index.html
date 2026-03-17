@@ -1,0 +1,2510 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Zener Lab INTG City</title>
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+    <style>
+        :root {
+            --bg:#0d1117;--panel:#161b22;--text:#58a6ff;--accent:#1f6feb;
+            --white:#f0f6fc;--danger:#f85149;--success:#3fb950;--gray:#8b949e;--border:#30363d;
+        }
+        *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+        body{font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background-color:var(--bg);color:var(--white);margin:0;display:flex;flex-direction:column;align-items:center;min-height:100vh;}
+        .container{background:var(--panel);width:100%;padding:30px 25px;display:flex;flex-direction:column;border-left:1px solid var(--border);border-right:1px solid var(--border);box-shadow:0 0 50px rgba(0,0,0,0.5);position:relative;min-height:100vh;}
+        /* iOS Safari scroll fix for help screen */
+        .container.scrollable{overflow-y:auto;-webkit-overflow-scrolling:touch;}
+        h1{color:var(--text);text-align:center;font-size:1.6rem;letter-spacing:3px;text-transform:uppercase;margin:0 0 5px 0;font-weight:800;}
+        .subtitle{text-align:center;color:var(--gray);font-size:0.85rem;margin-bottom:30px;letter-spacing:4px;text-transform:uppercase;}
+        .config-card{background:rgba(0,0,0,0.3);padding:22px;border-radius:16px;margin-bottom:25px;border:1px solid var(--border);}
+        .input-group{margin-bottom:18px;}
+        .input-group label{display:block;font-size:0.7rem;color:var(--text);margin-bottom:8px;font-weight:bold;text-transform:uppercase;letter-spacing:1px;}
+        input[type="text"],textarea,select{width:100%;padding:14px;background:#010409;border:1px solid var(--border);color:var(--white);border-radius:10px;font-size:1rem;font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;transition:border-color 0.2s;-webkit-appearance:none;appearance:none;}
+        select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238b949e'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;}
+        select option{background:#161b22;color:var(--white);}
+        input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);}
+        textarea{resize:none;height:110px;}
+        .card-display{width:160px;height:220px;background:#ffffff;border-radius:16px;margin:20px auto;display:flex;align-items:center;justify-content:center;box-shadow:0 10px 40px rgba(0,0,0,0.6);border:4px solid var(--accent);}
+        .card-display svg{width:70%;height:70%;}
+        .hidden-mark{font-size:5rem;color:#161b22;font-weight:bold;font-family:serif;}
+        .options-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:30px 0;}
+        .opt-btn{background:#21262d;border:1px solid var(--border);border-radius:12px;padding:15px 5px;cursor:pointer;text-align:center;transition:all 0.2s;}
+        .opt-btn:hover{border-color:var(--text);transform:translateY(-2px);}
+        .opt-btn:active{background:var(--accent);transform:scale(0.95);}
+        .opt-btn svg{width:30px;height:30px;margin-bottom:8px;}
+        .opt-btn span{display:block;font-size:0.55rem;color:var(--gray);text-transform:uppercase;font-weight:bold;}
+        .stats-hud{display:grid;grid-template-columns:repeat(3,1fr);gap:15px;margin-bottom:25px;}
+        .stat-item{background:#010409;padding:12px;border-radius:12px;text-align:center;border:1px solid var(--border);border-bottom:4px solid var(--accent);}
+        .stat-val{display:block;font-size:1.4rem;font-weight:bold;color:var(--text);font-family:'Courier New',monospace;}
+        .stat-lbl{font-size:0.6rem;color:var(--gray);font-weight:bold;letter-spacing:1px;margin-top:4px;display:block;}
+        .btn-primary{background:var(--accent);color:white;border:none;padding:20px;border-radius:12px;font-weight:bold;width:100%;cursor:pointer;font-size:1rem;text-transform:uppercase;letter-spacing:2px;box-shadow:0 4px 15px rgba(31,111,235,0.3);-webkit-appearance:none;appearance:none;}
+        .btn-outline{background:transparent;border:1px solid var(--border);color:var(--gray);padding:14px;border-radius:12px;margin-top:15px;width:100%;cursor:pointer;font-weight:bold;text-transform:uppercase;font-size:0.8rem;-webkit-appearance:none;appearance:none;}
+        canvas{width:100%;height:auto;display:block;background:white;border-radius:12px;margin-top:20px;box-shadow:0 0 20px rgba(0,0,0,0.4);}
+        canvas.dark-canvas{background:#0d1117;}
+        .hidden{display:none !important;}
+        .sess-row{display:flex;align-items:center;justify-content:space-between;background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:10px;}
+        .sess-num{color:var(--text);font-weight:bold;font-family:monospace;font-size:0.9rem;}
+        .sess-pair{color:var(--gray);font-size:0.68rem;margin-top:2px;}
+        .sess-date{color:var(--gray);font-size:0.6rem;margin-top:2px;}
+        .sess-stats{display:flex;gap:14px;}
+        .sess-stat{text-align:center;}
+        .sess-stat .sv{display:block;font-weight:bold;font-family:monospace;font-size:1rem;}
+        .sess-stat .sl{display:block;font-size:0.5rem;text-transform:uppercase;letter-spacing:0.5px;color:var(--gray);}
+        .sess-empty{text-align:center;color:var(--gray);font-size:0.85rem;padding:40px 0;line-height:1.8;}
+        .streak-badge{display:inline-block;padding:2px 7px;border-radius:6px;font-size:0.58rem;font-weight:bold;text-transform:uppercase;letter-spacing:0.8px;margin-left:5px;vertical-align:middle;}
+        .badge-dir{background:rgba(63,185,80,0.18);color:#3fb950;border:1px solid rgba(63,185,80,0.35);}
+        .btn-danger{background:transparent;border:1px solid var(--danger);color:var(--danger);padding:11px;border-radius:10px;margin-top:12px;width:100%;cursor:pointer;font-weight:bold;text-transform:uppercase;font-size:0.75rem;-webkit-appearance:none;appearance:none;}
+        .period-btn{flex:1;background:rgba(0,0,0,0.3);border:1px solid var(--border);color:var(--gray);padding:9px 4px;border-radius:8px;cursor:pointer;font-size:0.72rem;font-weight:bold;text-transform:uppercase;letter-spacing:0.5px;transition:all 0.2s;-webkit-appearance:none;appearance:none;}
+        .period-btn:hover{border-color:var(--text);color:var(--white);}
+        .period-btn.active{background:var(--accent);border-color:var(--accent);color:#fff;}
+        .mode-btn{flex:1;background:rgba(0,0,0,0.3);border:1px solid var(--border);color:var(--gray);padding:9px 4px;border-radius:8px;cursor:pointer;font-size:0.72rem;font-weight:bold;text-transform:uppercase;letter-spacing:0.5px;transition:all 0.2s;-webkit-appearance:none;appearance:none;}
+        .mode-btn:hover{border-color:var(--text);color:var(--white);}
+        .mode-btn.active{background:var(--accent);border-color:var(--accent);color:#fff;}
+        /* Swipe tracks */
+        .swipe-track{position:relative;height:44px;background:rgba(248,81,73,0.12);border-radius:10px;overflow:hidden;-webkit-user-select:none;-moz-user-select:none;user-select:none;touch-action:none;-webkit-touch-callout:none;}
+        /* Flex gap fallback for older Safari — use margin on children */
+        .gap-fallback>*+*{margin-left:8px;}
+        #toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#3fb950;color:#000;padding:10px 22px;border-radius:20px;font-size:0.85rem;font-weight:bold;opacity:0;transition:opacity 0.3s;pointer-events:none;z-index:999;}
+    </style>
+</head>
+<body>
+<div id="toast"></div>
+<div id="app" style="width:100%;max-width:500px;min-height:100vh;">
+
+<!-- PANTALLA 1: CONFIGURACIÓN -->
+<div class="container" id="scr-setup">
+    <!-- Help icon -->
+    <div style="position:absolute;top:18px;right:18px;z-index:10;" id="helpIconWrap">
+        <button onclick="showHelp()" style="background:rgba(31,111,235,0.15);border:1px solid rgba(31,111,235,0.4);color:#58a6ff;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:0.9rem;font-weight:bold;display:flex;align-items:center;justify-content:center;transition:all 0.2s;" title="Ayuda">?</button>
+    </div>
+    <h1>Zener Test</h1>
+    <div class="subtitle">INTG City</div>
+
+    <!-- Mode selector 2x2 -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+        <button class="mode-btn active" id="modeNormal"    onclick="setMode('normal',this)">Parejas</button>
+        <button class="mode-btn"        id="modeAuto"      onclick="setMode('auto',this)">Auto Test</button>
+        <button class="mode-btn"        id="modeGuest"     onclick="setMode('guest',this)">Pareja Invitada</button>
+        <button class="mode-btn"        id="modeAutoGuest" onclick="setMode('auto-guest',this)">Auto Test Invitado</button>
+    </div>
+    <button onclick="showPartyLobby()" style="width:100%;margin-bottom:18px;padding:10px;background:rgba(31,111,235,0.1);border:1px solid rgba(31,111,235,0.4);color:#58a6ff;border-radius:8px;cursor:pointer;font-size:0.72rem;font-weight:bold;text-transform:uppercase;letter-spacing:0.5px;-webkit-appearance:none;appearance:none;">🎮 Modo Party</button>
+
+    <!-- Mode description badge -->
+    <div id="modeBadge" style="font-size:0.72rem;color:var(--gray);text-align:center;margin:-8px 0 14px;letter-spacing:0.5px;min-height:16px;"></div>
+
+    <div class="config-card" id="configFields">
+        <div class="input-group" id="fieldReceptor"><label>¿Quién visualizará las cartas? (Receptor)</label><input type="text" id="inReceptor" value="" placeholder="Nombre de quien recibe telepatía"></div>
+        <div class="input-group" id="fieldEmisor"><label>¿Quién envía telepatía y registra respuestas? (Emisor)</label><input type="text" id="inEmisor" value="" placeholder="Nombre de quien envía Telepatía y registra respuestas"></div>
+        <div class="input-group">
+            <label>Longitud de la Sesión</label>
+            <select id="inTotalCards">
+                <option value="25">25 Cartas (Estándar Rhine)</option>
+                <option value="50">50 Cartas (Extendido)</option>
+                <option value="75">75 Cartas (Alta precisión)</option>
+                <option value="100">100 Cartas (Protocolo Maestro)</option>
+            </select>
+        </div>
+        <div class="input-group">
+            <label>Nivel de Visualización</label>
+            <select id="inColorLevel">
+                <option value="1">Nivel 1: Color Negro</option>
+                <option value="2">Nivel 2: Color Estándar</option>
+                <option value="3">Nivel 3: Caos Aleatorio</option>
+            </select>
+        </div>
+    </div>
+    <div class="config-card" style="display:flex;flex-direction:column;gap:10px;">
+        <label style="display:flex;align-items:center;gap:12px;cursor:pointer;font-size:0.9rem;" id="blindLabel">
+            <input type="checkbox" id="inBlind" style="transform:scale(1.3);"> MODO CIEGO (Oculta la carta que sale en pantalla)
+        </label>
+        <div class="input-group" style="margin-top:15px;">
+            <label>Notas Previas del Observador</label>
+            <textarea id="inObsNotes" placeholder="Condiciones ambientales, estado emocional de la persona..."></textarea>
+        </div>
+    </div>
+    <button class="btn-primary" onclick="startSession()">Iniciar Protocolo</button>
+    <button class="btn-outline" onclick="showHistory()">Ver Historial de Sesiones</button>
+    <button class="btn-outline" id="btnAutoHistory" onclick="showAutoHistory()" style="display:none;">Ver Historial Auto Test</button>
+
+    <!-- Auth bar -->
+    <div id="authBar" style="margin-top:20px;background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:12px;padding:14px 16px;">
+        <div id="authDebug" style="font-size:0.6rem;color:#f85149;margin-bottom:6px;display:none;">Iniciando Firebase...</div>
+        <div id="authLoggedOut">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+                <div>
+                    <div style="font-size:0.65rem;font-weight:bold;color:var(--gray);text-transform:uppercase;letter-spacing:1px;">Historial en la nube</div>
+                    <div style="font-size:0.72rem;color:var(--gray);margin-top:3px;">Inicia sesión para sincronizar en todos tus dispositivos</div>
+                </div>
+                <button onclick="signInWithGoogle()" style="background:#1f6feb;border:none;color:#fff;padding:9px 14px;border-radius:8px;cursor:pointer;font-size:0.72rem;font-weight:bold;white-space:nowrap;-webkit-appearance:none;appearance:none;">
+                    <span style="margin-right:5px;">G</span>Iniciar sesión
+                </button>
+            </div>
+        </div>
+        <div id="authLoggedIn" style="display:none;">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <img id="authAvatar" src="" width="30" height="30" style="border-radius:50%;display:none;" alt=""/>
+                    <div>
+                        <div id="authName" style="font-size:0.75rem;font-weight:bold;color:var(--white);"></div>
+                        <div style="font-size:0.6rem;color:#3fb950;margin-top:1px;">● Historial sincronizado</div>
+                    </div>
+                </div>
+                <button onclick="signOutUser()" style="background:transparent;border:1px solid var(--border);color:var(--gray);padding:7px 12px;border-radius:8px;cursor:pointer;font-size:0.65rem;font-weight:bold;-webkit-appearance:none;appearance:none;">Cerrar sesión</button>
+            </div>
+        </div>
+    </div>
+
+    <div style="text-align:right;margin-top:18px;font-size:0.6rem;color:rgba(255,255,255,0.18);letter-spacing:0.5px;font-style:italic;">Desarrollado por @ARSifuentes</div>
+</div>
+
+<!-- PANTALLA 2: SESIÓN -->
+<div class="container hidden" id="scr-test">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <span id="uiStep" style="font-weight:bold;color:var(--text);font-family:monospace;letter-spacing:1px;">CARTA 01 / 25</span>
+        <button onclick="resetApp()" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:0.7rem;font-weight:bold;text-transform:uppercase;">REINICIAR</button>
+    </div>
+    <div class="card-display" id="uiCardSlot"></div>
+    <div class="options-grid" id="uiOptionsGrid"></div>
+    <div class="stats-hud">
+        <div class="stat-item"><span class="stat-lbl">DIRECTO</span><span id="vDir" class="stat-val">0</span></div>
+        <div class="stat-item"><span class="stat-lbl">PRECOGNICIÓN</span><span id="vPre" class="stat-val">0</span></div>
+        <div class="stat-item"><span class="stat-lbl">POSTCOGNICIÓN</span><span id="vPos" class="stat-val">0</span></div>
+    </div>
+    <button class="btn-outline" onclick="goToFinalNotes()">Finalizar ahora</button>
+</div>
+
+<!-- PANTALLA 3: CONCLUSIÓN -->
+<div class="container hidden" id="scr-final-notes">
+    <h1>Conclusión</h1>
+    <div class="subtitle">Análisis Subjetivo</div>
+    <div class="config-card">
+        <div class="input-group">
+            <label>Observaciones Finales</label>
+            <textarea id="inFinalNotes" placeholder="Describa sensaciones, fatiga o interferencias detectadas..."></textarea>
+        </div>
+        <p style="font-size:0.75rem;color:var(--gray);line-height:1.6;text-align:center;margin:0;">
+            El sistema procesará la correlación estadística completa y generará un informe técnico de alta resolución.
+        </p>
+    </div>
+    <button class="btn-primary" onclick="processReport()">Generar Reporte</button>
+</div>
+
+<!-- PANTALLA 4: REPORTE -->
+<div class="container hidden" id="scr-report">
+    <h1 id="reportTitle">Reporte de Protocolo</h1>
+    <div class="subtitle" id="reportSubtitle">Datos Procesados</div>
+    <canvas id="cnvReport"></canvas>
+    <button class="btn-primary" style="margin-top:25px;" onclick="downloadPNG('cnvReport',document.getElementById('inReceptor').value)">Descargar como PNG</button>
+    <button class="btn-outline" onclick="saveSession()" id="btnSave">Guardar Sesión en Historial</button>
+    <button class="btn-outline" onclick="resetApp()">Nueva Prueba</button>
+</div>
+
+<!-- PANTALLA 5: HISTORIAL -->
+<div class="container hidden" id="scr-history">
+    <h1 id="histTitle">Gráfica de Avance</h1>
+    <div class="subtitle" id="histSubtitle">Progresión de Sesiones</div>
+
+    <!-- Period selector with week dropdown -->
+    <div style="display:flex;gap:8px;margin-bottom:12px;align-items:stretch;flex-wrap:wrap;">
+        <button class="period-btn active" data-period="day"   onclick="setPeriod('day',this)">1 Día</button>
+        <!-- Week button with dropdown -->
+        <div style="flex:1;position:relative;" id="weekDropContainer">
+            <button class="period-btn" id="weekBtn" data-period="week" onclick="toggleWeekDrop(event)" style="width:100%;display:flex;align-items:center;justify-content:center;gap:4px;">
+                <span id="weekLabel">1 Semana</span><span style="font-size:0.65rem;">▾</span>
+            </button>
+            <div id="weekDrop" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:99;background:var(--panel);border:1px solid var(--border);border-radius:8px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,0.4);">
+                <div class="wk-opt" onclick="selectWeeks(1)" style="padding:10px 14px;font-size:0.72rem;font-weight:bold;text-transform:uppercase;cursor:pointer;color:var(--gray);">1 Semana</div>
+                <div class="wk-opt" onclick="selectWeeks(2)" style="padding:10px 14px;font-size:0.72rem;font-weight:bold;text-transform:uppercase;cursor:pointer;color:var(--gray);border-top:1px solid var(--border);">2 Semanas</div>
+                <div class="wk-opt" onclick="selectWeeks(3)" style="padding:10px 14px;font-size:0.72rem;font-weight:bold;text-transform:uppercase;cursor:pointer;color:var(--gray);border-top:1px solid var(--border);">3 Semanas</div>
+            </div>
+        </div>
+        <button class="period-btn"        data-period="month" onclick="setPeriod('month',this)">1 Mes</button>
+        <button class="period-btn"        data-period="year"  onclick="setPeriod('year',this)">1 Año</button>
+        <button class="period-btn"        data-period="all"   onclick="setPeriod('all',this)">Todo</button>
+    </div>
+
+    <canvas id="cnvChart" class="dark-canvas" style="border-radius:12px;margin-bottom:6px;"></canvas>
+    <button class="btn-outline" onclick="downloadChartPNG()" style="margin-top:6px;border-color:#2ea043;color:#3fb950;">↓ Descargar Gráfica</button>
+    <button class="btn-outline" onclick="showSetup()" style="margin-top:10px;border-color:#1f6feb;color:#58a6ff;">⌂ Volver al Inicio</button>
+    <div style="height:20px;"></div>
+    <div id="histList"></div>
+
+    <!-- Swipe-to-delete danger zone -->
+    <div id="deleteZone" style="margin-top:18px;border:1px solid var(--border);border-radius:12px;padding:14px 16px;background:rgba(248,81,73,0.06);">
+        <div style="font-size:0.7rem;font-weight:bold;text-transform:uppercase;color:var(--danger);letter-spacing:1px;margin-bottom:10px;text-align:center;">⚠ Zona de borrado — desliza para confirmar</div>
+        <div class="swipe-track" id="swipeTrack">
+            <div style="position:absolute;top:0;left:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;font-size:0.72rem;font-weight:bold;color:rgba(248,81,73,0.45);text-transform:uppercase;letter-spacing:1px;pointer-events:none;">Desliza → para borrar historial</div>
+            <div id="swipeThumb" style="position:absolute;left:4px;top:4px;width:60px;height:36px;background:var(--danger);border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:grab;touch-action:none;">
+                <span style="color:#fff;font-size:1rem;">→</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- PANTALLA 5B: HISTORIAL AUTO TEST -->
+<div class="container hidden" id="scr-history-auto">
+    <h1>Auto Test</h1>
+    <div class="subtitle">Historial Individual</div>
+
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+        <button class="period-btn active" data-period="day"   onclick="setAutoPeriod('day',this)">1 Día</button>
+        <div style="flex:1;position:relative;" id="weekDropContainerAuto">
+            <button class="period-btn" id="weekBtnAuto" data-period="week" onclick="toggleWeekDropAuto(event)" style="width:100%;display:flex;align-items:center;justify-content:center;gap:4px;">
+                <span id="weekLabelAuto">1 Semana</span><span style="font-size:0.65rem;">▾</span>
+            </button>
+            <div id="weekDropAuto" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:99;background:var(--panel);border:1px solid var(--border);border-radius:8px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,0.4);">
+                <div onclick="selectWeeksAuto(1)" style="padding:10px 14px;font-size:0.72rem;font-weight:bold;text-transform:uppercase;cursor:pointer;color:var(--gray);">1 Semana</div>
+                <div onclick="selectWeeksAuto(2)" style="padding:10px 14px;font-size:0.72rem;font-weight:bold;text-transform:uppercase;cursor:pointer;color:var(--gray);border-top:1px solid var(--border);">2 Semanas</div>
+                <div onclick="selectWeeksAuto(3)" style="padding:10px 14px;font-size:0.72rem;font-weight:bold;text-transform:uppercase;cursor:pointer;color:var(--gray);border-top:1px solid var(--border);">3 Semanas</div>
+            </div>
+        </div>
+        <button class="period-btn"        data-period="month" onclick="setAutoPeriod('month',this)">1 Mes</button>
+        <button class="period-btn"        data-period="year"  onclick="setAutoPeriod('year',this)">1 Año</button>
+        <button class="period-btn"        data-period="all"   onclick="setAutoPeriod('all',this)">Todo</button>
+    </div>
+
+    <canvas id="cnvChartAuto" class="dark-canvas" style="border-radius:12px;margin-bottom:6px;"></canvas>
+    <button class="btn-outline" onclick="downloadAutoChartPNG()" style="margin-top:6px;border-color:#2ea043;color:#3fb950;">↓ Descargar Gráfica</button>
+    <button class="btn-outline" onclick="showSetup()" style="margin-top:10px;border-color:#1f6feb;color:#58a6ff;">⌂ Volver al Inicio</button>
+    <div style="height:20px;"></div>
+    <div id="histListAuto"></div>
+
+    <!-- Swipe-to-delete auto history -->
+    <div style="margin-top:18px;border:1px solid var(--border);border-radius:12px;padding:14px 16px;background:rgba(248,81,73,0.06);">
+        <div style="font-size:0.7rem;font-weight:bold;text-transform:uppercase;color:var(--danger);letter-spacing:1px;margin-bottom:10px;text-align:center;">⚠ Zona de borrado — desliza para confirmar</div>
+        <div class="swipe-track" id="swipeTrackAuto">
+            <div style="position:absolute;top:0;left:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;font-size:0.72rem;font-weight:bold;color:rgba(248,81,73,0.45);text-transform:uppercase;letter-spacing:1px;pointer-events:none;">Desliza → para borrar historial Auto</div>
+            <div id="swipeThumbAuto" style="position:absolute;left:4px;top:4px;width:60px;height:36px;background:var(--danger);border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:grab;touch-action:none;">
+                <span style="color:#fff;font-size:1rem;">→</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- PANTALLA 6: REPORTE DE SESIÓN GUARDADA -->
+<div class="container hidden" id="scr-sess-report">
+    <h1>Reporte de Sesión</h1>
+    <div class="subtitle" id="sessReportSubtitle">Sesión #—</div>
+    <canvas id="cnvSessReport"></canvas>
+    <button class="btn-primary" style="margin-top:25px;" onclick="downloadPNG('cnvSessReport',window._sessReceptor||'')">Descargar como PNG</button>
+    <button class="btn-outline" onclick="showHistory()">Volver al Historial</button>
+</div>
+
+<!-- PANTALLA 7: AYUDA -->
+<div class="container scrollable hidden" id="scr-help" style="padding-bottom:40px;">
+
+    <!-- Header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+        <h1 style="margin:0;font-size:1.3rem;">Ayuda</h1>
+        <button onclick="showSetup()" style="background:none;border:none;color:var(--gray);cursor:pointer;font-size:1.4rem;line-height:1;" title="Cerrar">✕</button>
+    </div>
+    <div class="subtitle" style="margin-bottom:24px;">Guía de uso · Zener Test INTG City</div>
+
+    <!-- Declaración -->
+    <div style="background:rgba(31,111,235,0.08);border:1px solid rgba(31,111,235,0.3);border-radius:14px;padding:20px;margin-bottom:24px;">
+        <div style="font-size:0.65rem;font-weight:bold;color:#58a6ff;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px;">¿Para qué fue creado?</div>
+        <p style="font-size:0.82rem;color:var(--white);line-height:1.7;margin:0 0 10px 0;">
+            El <strong>Zener Test INTG City</strong> es una herramienta experimental para explorar la percepción extrasensorial (ESP) basada en el protocolo original del Dr. J.B. Rhine de la Universidad de Duke (1934).
+        </p>
+        <p style="font-size:0.82rem;color:var(--gray);line-height:1.7;margin:0;">
+            Permite realizar sesiones de telepatía entre dos personas, pruebas individuales en modo Auto Test, y llevar un historial con gráficas de avance a lo largo del tiempo. Los resultados son de carácter experimental y educativo — no constituyen un diagnóstico clínico.
+        </p>
+    </div>
+
+    <!-- Las 5 figuras -->
+    <div style="font-size:0.65rem;font-weight:bold;color:#58a6ff;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:12px;">Las 5 Figuras Zener</div>
+    <div style="display:flex;justify-content:space-around;background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:24px;">
+        <div style="text-align:center;">
+            <svg viewBox="0 0 100 100" width="40" height="40" stroke="#f1c40f" style="filter:drop-shadow(0 0 3px rgba(241,196,15,0.5))"><circle cx="50" cy="50" r="38" stroke-width="8" fill="none"/></svg>
+            <div style="font-size:0.55rem;color:var(--gray);margin-top:4px;text-transform:uppercase;">Círculo</div>
+        </div>
+        <div style="text-align:center;">
+            <svg viewBox="0 0 100 100" width="40" height="40" stroke="#e74c3c" style="filter:drop-shadow(0 0 3px rgba(231,76,60,0.5))"><path d="M50 15 V85 M15 50 H85" stroke-width="8" fill="none"/></svg>
+            <div style="font-size:0.55rem;color:var(--gray);margin-top:4px;text-transform:uppercase;">Cruz</div>
+        </div>
+        <div style="text-align:center;">
+            <svg viewBox="0 0 100 100" width="40" height="40" stroke="#3498db" style="filter:drop-shadow(0 0 2px rgba(52,152,219,0.3))"><path d="M20 35 Q35 15 50 35 T80 35 M20 50 Q35 30 50 50 T80 50 M20 65 Q35 45 50 65 T80 65" stroke-width="8" fill="none"/></svg>
+            <div style="font-size:0.55rem;color:var(--gray);margin-top:4px;text-transform:uppercase;">Ondas</div>
+        </div>
+        <div style="text-align:center;">
+            <svg viewBox="0 0 100 100" width="40" height="40" stroke="#111111" style="filter:drop-shadow(0 0 3px rgba(255,255,255,0.4))"><rect x="18" y="18" width="64" height="64" stroke-width="8" fill="none"/></svg>
+            <div style="font-size:0.55rem;color:var(--gray);margin-top:4px;text-transform:uppercase;">Cuadrado</div>
+        </div>
+        <div style="text-align:center;">
+            <svg viewBox="0 0 100 100" width="40" height="40" stroke="#2ecc71" style="filter:drop-shadow(0 0 3px rgba(46,204,113,0.5))"><path d="M50 12 L62 38 H90 L68 54 L76 82 L50 66 L24 82 L32 54 L10 38 H38 Z" stroke-width="8" fill="none"/></svg>
+            <div style="font-size:0.55rem;color:var(--gray);margin-top:4px;text-transform:uppercase;">Estrella</div>
+        </div>
+    </div>
+
+    <!-- Modos de uso -->
+    <div style="font-size:0.65rem;font-weight:bold;color:#58a6ff;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:12px;">Modos de Uso</div>
+
+    <!-- Modo Parejas -->
+    <div style="background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+            <div style="background:var(--accent);color:#fff;font-size:0.6rem;font-weight:bold;padding:3px 10px;border-radius:20px;text-transform:uppercase;">Parejas</div>
+            <span style="font-size:0.72rem;color:var(--white);font-weight:bold;">Test telepático entre dos personas</span>
+        </div>
+        <ol style="font-size:0.78rem;color:var(--gray);line-height:2;margin:0;padding-left:18px;">
+            <li>El <strong style="color:var(--white);">Emisor</strong> ve la carta en pantalla y envía la figura mentalmente.</li>
+            <li>El <strong style="color:var(--white);">Receptor</strong> (sin ver la pantalla) menciona la figura que percibe.</li>
+            <li>El Emisor registra la respuesta tocando el botón correspondiente.</li>
+            <li>Al terminar las cartas, se generan notas finales y el reporte.</li>
+            <li>Guarda la sesión para sumarla a tu historial y gráfica de avance.</li>
+        </ol>
+        <!-- Pantalllazo setup -->
+        <div style="margin-top:14px;background:#010409;border:1px solid var(--border);border-radius:10px;padding:12px;">
+            <div style="font-size:0.6rem;color:var(--gray);text-align:center;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px;">Pantalla de configuración</div>
+            <svg viewBox="0 0 340 160" width="100%" style="display:block;border-radius:6px;">
+                <rect width="340" height="160" fill="#161b22"/>
+                <rect x="10" y="10" width="320" height="20" rx="4" fill="rgba(31,111,235,0.15)" stroke="rgba(31,111,235,0.3)" stroke-width="1"/>
+                <text x="170" y="24" text-anchor="middle" fill="#58a6ff" font-size="9" font-family="Arial" font-weight="bold">ZENER TEST · INTG CITY</text>
+                <!-- Mode grid -->
+                <rect x="10" y="36" width="152" height="20" rx="4" fill="#1f6feb"/>
+                <text x="86" y="50" text-anchor="middle" fill="#fff" font-size="7" font-family="Arial" font-weight="bold">PAREJAS</text>
+                <rect x="168" y="36" width="162" height="20" rx="4" fill="rgba(0,0,0,0.3)" stroke="#30363d" stroke-width="1"/>
+                <text x="249" y="50" text-anchor="middle" fill="#8b949e" font-size="7" font-family="Arial" font-weight="bold">AUTO TEST</text>
+                <!-- Fields -->
+                <rect x="10" y="62" width="320" height="16" rx="4" fill="#010409" stroke="#30363d" stroke-width="1"/>
+                <text x="20" y="74" fill="#484f58" font-size="7" font-family="Arial">Receptor...</text>
+                <rect x="10" y="82" width="320" height="16" rx="4" fill="#010409" stroke="#30363d" stroke-width="1"/>
+                <text x="20" y="94" fill="#484f58" font-size="7" font-family="Arial">Emisor...</text>
+                <!-- Dropdowns -->
+                <rect x="10" y="102" width="153" height="14" rx="4" fill="#010409" stroke="#30363d" stroke-width="1"/>
+                <text x="20" y="113" fill="#484f58" font-size="6" font-family="Arial">25 Cartas (Estándar Rhine)</text>
+                <rect x="168" y="102" width="162" height="14" rx="4" fill="#010409" stroke="#30363d" stroke-width="1"/>
+                <text x="178" y="113" fill="#484f58" font-size="6" font-family="Arial">Nivel 1: Color Negro</text>
+                <!-- CTA -->
+                <rect x="10" y="122" width="320" height="28" rx="8" fill="#1f6feb"/>
+                <text x="170" y="141" text-anchor="middle" fill="#fff" font-size="9" font-family="Arial" font-weight="bold" letter-spacing="2">INICIAR PROTOCOLO</text>
+            </svg>
+        </div>
+    </div>
+
+    <!-- Pantalla de Sesión -->
+    <div style="background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px;">
+        <div style="font-size:0.65rem;font-weight:bold;color:#58a6ff;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px;">Durante la Sesión</div>
+        <p style="font-size:0.78rem;color:var(--gray);line-height:1.7;margin:0 0 10px 0;">Aparecerá la carta actual con las 5 figuras abajo. Las etiquetas de abajo te muestran en tiempo real los <span style="color:#3fb950;">Aciertos Directos</span>, <span style="color:#58a6ff;">Precognición</span> y <span style="color:#f85149;">Postcognición</span>.</p>
+        <svg viewBox="0 0 340 210" width="100%" style="display:block;border-radius:6px;border:1px solid var(--border);">
+            <rect width="340" height="210" fill="#0d1117"/>
+            <!-- Top bar -->
+            <text x="14" y="18" fill="#f0f6fc" font-size="8" font-family="monospace" font-weight="bold">CARTA 03 / 25</text>
+            <text x="326" y="18" text-anchor="end" fill="#f85149" font-size="7" font-family="Arial" font-weight="bold">REINICIAR</text>
+            <!-- Card -->
+            <rect x="105" y="26" width="130" height="82" rx="10" fill="white" stroke="#1f6feb" stroke-width="3"/>
+            <circle cx="170" cy="67" r="30" stroke="#f1c40f" stroke-width="8" fill="none"/>
+
+            <!-- 5 option buttons — width=60, gap=4, start=12 -->
+            <!-- Button 1: Círculo — center x=42 -->
+            <rect x="12" y="118" width="60" height="54" rx="8" fill="#21262d" stroke="#30363d" stroke-width="1"/>
+            <circle cx="42" cy="137" r="11" stroke="#f1c40f" stroke-width="4" fill="none"/>
+            <text x="42" y="163" text-anchor="middle" fill="#8b949e" font-size="5.5" font-family="Arial" font-weight="bold">CÍRCULO</text>
+
+            <!-- Button 2: Cruz — center x=106 -->
+            <rect x="76" y="118" width="60" height="54" rx="8" fill="#21262d" stroke="#30363d" stroke-width="1"/>
+            <line x1="106" y1="126" x2="106" y2="152" stroke="#e74c3c" stroke-width="4" stroke-linecap="round"/>
+            <line x1="93"  y1="139" x2="119" y2="139" stroke="#e74c3c" stroke-width="4" stroke-linecap="round"/>
+            <text x="106" y="163" text-anchor="middle" fill="#8b949e" font-size="5.5" font-family="Arial" font-weight="bold">CRUZ</text>
+
+            <!-- Button 3: Ondas — center x=170, button x=140–200 -->
+            <rect x="140" y="118" width="60" height="54" rx="8" fill="#21262d" stroke="#30363d" stroke-width="1"/>
+            <path d="M158 131 Q163 125 168 131 T178 131" stroke="#3498db" stroke-width="3" fill="none" stroke-linecap="round"/>
+            <path d="M158 139 Q163 133 168 139 T178 139" stroke="#3498db" stroke-width="3" fill="none" stroke-linecap="round"/>
+            <path d="M158 147 Q163 141 168 147 T178 147" stroke="#3498db" stroke-width="3" fill="none" stroke-linecap="round"/>
+            <text x="170" y="163" text-anchor="middle" fill="#8b949e" font-size="5.5" font-family="Arial" font-weight="bold">ONDAS</text>
+
+            <!-- Button 4: Cuadrado — center x=234, black square -->
+            <rect x="204" y="118" width="60" height="54" rx="8" fill="#21262d" stroke="#30363d" stroke-width="1"/>
+            <rect x="222" y="126" width="24" height="24" stroke="#111111" stroke-width="3.5" fill="none"/>
+            <text x="234" y="163" text-anchor="middle" fill="#8b949e" font-size="5.5" font-family="Arial" font-weight="bold">CUADRADO</text>
+
+            <!-- Button 5: Estrella — center x=298 -->
+            <rect x="268" y="118" width="60" height="54" rx="8" fill="#21262d" stroke="#30363d" stroke-width="1"/>
+            <polygon points="298,125 302,135 313,135 304,142 308,152 298,146 288,152 292,142 283,135 294,135" stroke="#2ecc71" stroke-width="2.5" fill="none" stroke-linejoin="round"/>
+            <text x="298" y="163" text-anchor="middle" fill="#8b949e" font-size="5.5" font-family="Arial" font-weight="bold">ESTRELLA</text>
+
+            <!-- HUD -->
+            <rect x="10"  y="180" width="99" height="20" rx="6" fill="#010409" stroke="#30363d" stroke-width="1"/>
+            <text x="59"  y="194" text-anchor="middle" fill="#3fb950" font-size="8" font-family="Arial" font-weight="bold">DIRECTO: 4</text>
+            <rect x="121" y="180" width="98" height="20" rx="6" fill="#010409" stroke="#30363d" stroke-width="1"/>
+            <text x="170" y="194" text-anchor="middle" fill="#58a6ff" font-size="8" font-family="Arial" font-weight="bold">PRECOG: 3</text>
+            <rect x="231" y="180" width="99" height="20" rx="6" fill="#010409" stroke="#30363d" stroke-width="1"/>
+            <text x="280" y="194" text-anchor="middle" fill="#f85149" font-size="8" font-family="Arial" font-weight="bold">POSTCOG: 2</text>
+        </svg>
+    </div>
+
+    <!-- Modo Auto Test -->
+    <div style="background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+            <div style="background:rgba(63,185,80,0.2);color:#3fb950;border:1px solid rgba(63,185,80,0.4);font-size:0.6rem;font-weight:bold;padding:3px 10px;border-radius:20px;text-transform:uppercase;">Auto Test</div>
+            <span style="font-size:0.72rem;color:var(--white);font-weight:bold;">Test individual en solitario</span>
+        </div>
+        <ol style="font-size:0.78rem;color:var(--gray);line-height:2;margin:0;padding-left:18px;">
+            <li>Selecciona <strong style="color:var(--white);">Auto Test</strong> en la pantalla de inicio.</li>
+            <li>La carta queda <strong style="color:var(--white);">oculta</strong> automáticamente (Modo Ciego).</li>
+            <li>Confía en tu intuición y elige la figura que sientas correcta.</li>
+            <li>El sistema revela los resultados al finalizar.</li>
+        </ol>
+    </div>
+
+    <!-- Modos Invitado -->
+    <div style="background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+            <div style="background:rgba(139,148,158,0.15);color:#8b949e;border:1px solid rgba(139,148,158,0.3);font-size:0.6rem;font-weight:bold;padding:3px 10px;border-radius:20px;text-transform:uppercase;">Invitado</div>
+            <span style="font-size:0.72rem;color:var(--white);font-weight:bold;">Sin guardar en historial</span>
+        </div>
+        <p style="font-size:0.78rem;color:var(--gray);line-height:1.7;margin:0;">Usa <strong style="color:var(--white);">Pareja Invitada</strong> o <strong style="color:var(--white);">Auto Test Invitado</strong> cuando quieras que alguien pruebe sin afectar el historial. Se genera el reporte completo y se puede descargar, pero la sesión no se guarda.</p>
+    </div>
+
+    <!-- El Reporte -->
+    <div style="background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px;">
+        <div style="font-size:0.65rem;font-weight:bold;color:#58a6ff;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px;">El Reporte</div>
+        <p style="font-size:0.78rem;color:var(--gray);line-height:1.7;margin:0 0 8px 0;">Al terminar la sesión se genera un reporte PNG descargable que incluye:</p>
+        <ul style="font-size:0.78rem;color:var(--gray);line-height:2;margin:0;padding-left:18px;">
+            <li><span style="color:#3fb950;">Aciertos Directos</span> — figura exacta en la carta actual</li>
+            <li><span style="color:#58a6ff;">Precognición</span> — figura que coincide con la carta <em>siguiente</em></li>
+            <li><span style="color:#f85149;">Postcognición</span> — figura que coincide con la carta <em>anterior</em></li>
+            <li>Secuencia detallada carta por carta</li>
+            <li>Escala de probabilidad Rhine</li>
+            <li>Análisis automático de resultados</li>
+        </ul>
+    </div>
+
+    <!-- Historial y Gráfica -->
+    <div style="background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px;">
+        <div style="font-size:0.65rem;font-weight:bold;color:#58a6ff;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px;">Historial y Gráfica de Avance</div>
+        <p style="font-size:0.78rem;color:var(--gray);line-height:1.7;margin:0 0 8px 0;">Cada sesión guardada se suma al historial, agrupado por semana, mes o año. La gráfica muestra el progreso de las tres métricas a lo largo del tiempo con filtros de período.</p>
+        <svg viewBox="0 0 340 100" width="100%" style="display:block;border-radius:6px;background:#0d1117;border:1px solid var(--border);margin-top:8px;">
+            <rect width="340" height="100" fill="#0d1117"/>
+            <!-- Chart area -->
+            <rect x="30" y="10" width="300" height="62" fill="#161b22" stroke="#30363d" stroke-width="1"/>
+            <!-- Grid lines -->
+            <line x1="30" y1="26" x2="330" y2="26" stroke="#21262d" stroke-width="1"/>
+            <line x1="30" y1="42" x2="330" y2="42" stroke="#21262d" stroke-width="1"/>
+            <line x1="30" y1="58" x2="330" y2="58" stroke="#21262d" stroke-width="1"/>
+            <!-- Green line — Aciertos -->
+            <polyline points="55,48 105,40 155,30 205,44 255,22 305,36" fill="none" stroke="#3fb950" stroke-width="2" stroke-linejoin="round"/>
+            <!-- Blue line — Pre -->
+            <polyline points="55,54 105,50 155,46 205,52 255,42 305,48" fill="none" stroke="#58a6ff" stroke-width="2" stroke-linejoin="round"/>
+            <!-- Red line — Post -->
+            <polyline points="55,58 105,56 155,54 205,58 255,52 305,56" fill="none" stroke="#f85149" stroke-width="2" stroke-linejoin="round"/>
+            <!-- X labels -->
+            <text x="55" y="84" text-anchor="middle" fill="#c9d1d9" font-size="6" font-family="Arial" font-weight="bold">#1</text>
+            <text x="105" y="84" text-anchor="middle" fill="#c9d1d9" font-size="6" font-family="Arial" font-weight="bold">#2</text>
+            <text x="155" y="84" text-anchor="middle" fill="#c9d1d9" font-size="6" font-family="Arial" font-weight="bold">#3</text>
+            <text x="205" y="84" text-anchor="middle" fill="#c9d1d9" font-size="6" font-family="Arial" font-weight="bold">#4</text>
+            <text x="255" y="84" text-anchor="middle" fill="#c9d1d9" font-size="6" font-family="Arial" font-weight="bold">#5</text>
+            <text x="305" y="84" text-anchor="middle" fill="#c9d1d9" font-size="6" font-family="Arial" font-weight="bold">#6</text>
+            <!-- Legend -->
+            <circle cx="50" cy="95" r="3" fill="#3fb950"/>
+            <text x="56" y="98" fill="#8b949e" font-size="6" font-family="Arial">Aciertos</text>
+            <circle cx="110" cy="95" r="3" fill="#58a6ff"/>
+            <text x="116" y="98" fill="#8b949e" font-size="6" font-family="Arial">Pre</text>
+            <circle cx="150" cy="95" r="3" fill="#f85149"/>
+            <text x="156" y="98" fill="#8b949e" font-size="6" font-family="Arial">Post</text>
+        </svg>
+    </div>
+
+    <!-- Tips -->
+    <div style="background:rgba(63,185,80,0.06);border:1px solid rgba(63,185,80,0.2);border-radius:12px;padding:16px;margin-bottom:14px;">
+        <div style="font-size:0.65rem;font-weight:bold;color:#3fb950;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px;">Consejos para mejores resultados</div>
+        <ul style="font-size:0.78rem;color:var(--gray);line-height:2.1;margin:0;padding-left:18px;">
+            <li>Elige un ambiente <strong style="color:var(--white);">tranquilo</strong>, sin distracciones.</li>
+            <li>El Receptor no debe ver la pantalla en ningún momento.</li>
+            <li>No corras — deja que la percepción llegue antes de responder.</li>
+            <li>Registra en las notas el estado emocional y condiciones ambientales.</li>
+            <li>Realiza sesiones consistentes para que la gráfica de avance tenga sentido.</li>
+            <li>Un resultado superior al <strong style="color:#3fb950;">25–30%</strong> de aciertos directos es estadísticamente significativo.</li>
+        </ul>
+    </div>
+
+    <!-- Rhine Scale -->
+    <div style="background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:24px;">
+        <div style="font-size:0.65rem;font-weight:bold;color:#58a6ff;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:12px;">Escala de Rhine</div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+            <div style="display:flex;align-items:center;gap:10px;padding:7px 10px;background:rgba(248,81,73,0.1);border-left:3px solid #f85149;border-radius:6px;">
+                <span style="font-size:0.72rem;color:#f0f6fc;font-weight:bold;min-width:70px;">&gt; 50%</span>
+                <span style="font-size:0.7rem;color:#f0f6fc;font-weight:bold;">Anomalía crítica (Fenómeno ESP)</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;padding:7px 10px;background:rgba(31,111,235,0.1);border-left:3px solid #1f6feb;border-radius:6px;">
+                <span style="font-size:0.72rem;color:#f0f6fc;font-weight:bold;min-width:70px;">30 – 45%</span>
+                <span style="font-size:0.7rem;color:#c9d1d9;">Sensibilidad ESP (tendencia)</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;padding:7px 10px;background:rgba(139,148,158,0.08);border-left:3px solid #484f58;border-radius:6px;">
+                <span style="font-size:0.72rem;color:#f0f6fc;font-weight:bold;min-width:70px;">17 – 23%</span>
+                <span style="font-size:0.7rem;color:#8b949e;">Zona de azar (probabilidad base)</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;padding:7px 10px;background:rgba(63,185,80,0.06);border-left:3px solid #3fb950;border-radius:6px;">
+                <span style="font-size:0.72rem;color:#f0f6fc;font-weight:bold;min-width:70px;">&lt; 10%</span>
+                <span style="font-size:0.7rem;color:#8b949e;">Psi-Missing (inhibición activa)</span>
+            </div>
+        </div>
+    </div>
+
+    <button class="btn-outline" onclick="showSetup()" style="border-color:#1f6feb;color:#58a6ff;">⌂ Volver al Inicio</button>
+    <div style="text-align:right;margin-top:16px;font-size:0.6rem;color:rgba(255,255,255,0.18);letter-spacing:0.5px;font-style:italic;">Desarrollado por @ARSifuentes</div>
+</div>
+
+    <button class="btn-outline" onclick="showSetup()" style="border-color:#1f6feb;color:#58a6ff;">⌂ Volver al Inicio</button>
+    <div style="text-align:right;margin-top:16px;font-size:0.6rem;color:rgba(255,255,255,0.18);letter-spacing:0.5px;font-style:italic;">Desarrollado por @ARSifuentes</div>
+</div>
+
+<!-- PANTALLA 8: PARTY — LOBBY -->
+<div class="container hidden" id="scr-party-lobby">
+    <h1>Modo Party</h1>
+    <div class="subtitle">Sesión Grupal</div>
+
+    <!-- Crear sala -->
+    <div style="background:rgba(31,111,235,0.08);border:1px solid rgba(31,111,235,0.3);border-radius:14px;padding:20px;margin-bottom:16px;">
+        <div style="font-size:0.65rem;font-weight:bold;color:#58a6ff;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px;">Crear Sala — Emisor</div>
+        <p style="font-size:0.78rem;color:var(--gray);line-height:1.6;margin:0 0 14px 0;">Tú controlas las cartas. Comparte el código con los Receptores.</p>
+        <button onclick="createPartyRoom()" class="btn-primary" style="padding:14px;">Crear Sala Nueva</button>
+    </div>
+
+    <!-- Unirse a sala -->
+    <div style="background:rgba(63,185,80,0.06);border:1px solid rgba(63,185,80,0.25);border-radius:14px;padding:20px;margin-bottom:16px;">
+        <div style="font-size:0.65rem;font-weight:bold;color:#3fb950;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px;">Unirse a Sala — Receptor</div>
+        <p style="font-size:0.78rem;color:var(--gray);line-height:1.6;margin:0 0 14px 0;">Ingresa el código de 4 letras que te compartió el Emisor.</p>
+        <div style="display:flex;gap:10px;">
+            <input type="text" id="partyCodeInput" maxlength="4" placeholder="ABCD" style="text-transform:uppercase;text-align:center;font-size:1.4rem;font-weight:bold;letter-spacing:8px;flex:1;"/>
+            <button onclick="joinPartyRoom()" style="background:#3fb950;border:none;color:#000;padding:14px 20px;border-radius:10px;font-weight:bold;cursor:pointer;font-size:0.85rem;-webkit-appearance:none;appearance:none;">Unirse</button>
+        </div>
+    </div>
+
+    <button class="btn-outline" onclick="showSetup()" style="border-color:#1f6feb;color:#58a6ff;">⌂ Volver al Inicio</button>
+</div>
+
+<!-- PANTALLA 9: PARTY — SALA DE ESPERA (EMISOR) -->
+<div class="container hidden" id="scr-party-host">
+    <h1>Sala de Espera</h1>
+    <div class="subtitle" id="partyRoomCodeDisplay">Código: ----</div>
+
+    <div style="background:rgba(0,0,0,0.4);border:2px solid var(--accent);border-radius:16px;padding:24px;text-align:center;margin-bottom:20px;">
+        <div style="font-size:0.65rem;color:var(--gray);text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;">Comparte este código</div>
+        <div id="partyCodeBig" style="font-size:3rem;font-weight:bold;color:#58a6ff;letter-spacing:16px;font-family:monospace;">----</div>
+        <div style="font-size:0.7rem;color:var(--gray);margin-top:8px;margin-bottom:16px;">Los receptores ingresan este código desde sus dispositivos</div>
+        <button onclick="sharePartyLink()" style="background:rgba(31,111,235,0.2);border:1px solid rgba(31,111,235,0.5);color:#58a6ff;padding:10px 20px;border-radius:10px;cursor:pointer;font-size:0.78rem;font-weight:bold;width:100%;-webkit-appearance:none;appearance:none;">🔗 Compartir enlace de la sala</button>
+    </div>
+
+    <div style="background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:16px;">
+        <div style="font-size:0.65rem;font-weight:bold;color:#58a6ff;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">Receptores conectados</div>
+        <div id="partyMembersList" style="font-size:0.8rem;color:var(--gray);min-height:40px;">Esperando conexiones...</div>
+    </div>
+
+    <div class="config-card" style="margin-bottom:16px;">
+        <div class="input-group" style="margin-bottom:12px;">
+            <label>Longitud de la Sesión</label>
+            <select id="partyTotalCards">
+                <option value="25">25 Cartas (Estándar Rhine)</option>
+                <option value="50">50 Cartas (Extendido)</option>
+            </select>
+        </div>
+        <div class="input-group" style="margin-bottom:0;">
+            <label>Nivel de Visualización</label>
+            <select id="partyColorLevel">
+                <option value="1">Nivel 1: Color Negro</option>
+                <option value="2">Nivel 2: Color Estándar</option>
+                <option value="3">Nivel 3: Caos Aleatorio</option>
+            </select>
+        </div>
+    </div>
+
+    <button onclick="startPartySession()" class="btn-primary">Iniciar Sesión Party</button>
+    <button onclick="cancelParty()" class="btn-outline" style="margin-top:10px;">Cancelar</button>
+</div>
+
+<!-- PANTALLA 10: PARTY — SALA DE ESPERA (RECEPTOR) -->
+<div class="container hidden" id="scr-party-guest">
+    <h1>Sala Party</h1>
+    <div class="subtitle" id="partyGuestRoomCode">Código: ----</div>
+
+    <div style="text-align:center;padding:40px 0;">
+        <div style="font-size:2rem;margin-bottom:16px;">⏳</div>
+        <div style="font-size:0.9rem;color:var(--white);font-weight:bold;margin-bottom:8px;">Conectado — esperando al Emisor</div>
+        <div id="partyGuestName" style="font-size:0.75rem;color:var(--gray);"></div>
+    </div>
+
+    <div style="background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:16px;">
+        <div style="font-size:0.65rem;font-weight:bold;color:#58a6ff;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">Participantes</div>
+        <div id="partyGuestMembersList" style="font-size:0.8rem;color:var(--gray);min-height:40px;">Cargando...</div>
+    </div>
+
+    <button onclick="cancelParty()" class="btn-outline">Salir de la Sala</button>
+</div>
+
+<!-- PANTALLA 11: PARTY — SESIÓN EN CURSO (RECEPTOR) -->
+<div class="container hidden" id="scr-party-session">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <span id="partyStep" style="font-weight:bold;color:var(--text);font-family:monospace;letter-spacing:1px;">CARTA 01 / 25</span>
+        <span id="partyRoomTag" style="font-size:0.65rem;color:var(--gray);">Party</span>
+    </div>
+    <!-- Card always hidden for receptors -->
+    <div class="card-display"><div class="hidden-mark">?</div></div>
+    <div class="options-grid" id="partyOptionsGrid"></div>
+    <div class="stats-hud">
+        <div class="stat-item"><span class="stat-lbl">DIRECTO</span><span id="partyVDir" class="stat-val">0</span></div>
+        <div class="stat-item"><span class="stat-lbl">PRECOGNICIÓN</span><span id="partyVPre" class="stat-val">0</span></div>
+        <div class="stat-item"><span class="stat-lbl">POSTCOGNICIÓN</span><span id="partyVPos" class="stat-val">0</span></div>
+    </div>
+</div>
+
+<!-- PANTALLA 12: PARTY — CONTROL EMISOR (durante sesión) -->
+<div class="container hidden" id="scr-party-host-session">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <span id="partyHostStep" style="font-weight:bold;color:var(--text);font-family:monospace;letter-spacing:1px;">CARTA 01 / 25</span>
+        <span style="font-size:0.65rem;color:var(--accent);">EMISOR</span>
+    </div>
+    <div class="card-display" id="partyHostCard"></div>
+    <div style="background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:12px;padding:14px;margin:16px 0;">
+        <div style="font-size:0.65rem;font-weight:bold;color:#58a6ff;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">Respuestas en tiempo real</div>
+        <div id="partyLiveResponses" style="font-size:0.8rem;color:var(--gray);min-height:30px;">Esperando respuestas...</div>
+    </div>
+    <button onclick="partyNextCard()" id="partyNextBtn" class="btn-primary">Siguiente Carta →</button>
+    <button onclick="partyEndSession()" class="btn-outline" style="margin-top:10px;color:var(--danger);border-color:var(--danger);">Terminar Sesión</button>
+</div>
+
+<script>
+const COLORS=['#f1c40f','#e74c3c','#3498db','#111111','#2ecc71'];
+const SYMBOLS=[
+    {id:'cir',n:'Círculo', c:'#f1c40f',path:(ctx,x,y,s,col)=>{ctx.beginPath();ctx.strokeStyle=col;ctx.lineWidth=s*0.08;ctx.arc(x,y,s/2.2,0,Math.PI*2);ctx.stroke();}},
+    {id:'crs',n:'Cruz',    c:'#e74c3c',path:(ctx,x,y,s,col)=>{ctx.beginPath();ctx.strokeStyle=col;ctx.lineWidth=s*0.08;ctx.moveTo(x-s/2.2,y);ctx.lineTo(x+s/2.2,y);ctx.moveTo(x,y-s/2.2);ctx.lineTo(x,y+s/2.2);ctx.stroke();}},
+    {id:'wav',n:'Ondas',   c:'#3498db',path:(ctx,x,y,s,col)=>{ctx.beginPath();ctx.strokeStyle=col;ctx.lineWidth=s*0.08;for(let j=-1;j<=1;j++){ctx.moveTo(x-s/2.2,y+(j*s*0.15));for(let i=0;i<=s*0.9;i++)ctx.lineTo(x-s/2.2+i,y+(j*s*0.15)+Math.sin(i*0.2)*s*0.08);}ctx.stroke();}},
+    {id:'sqr',n:'Cuadrado',c:'#111111',path:(ctx,x,y,s,col)=>{ctx.beginPath();ctx.strokeStyle=col;ctx.lineWidth=s*0.08;ctx.strokeRect(x-s/2.2,y-s/2.2,s/1.1,s/1.1);}},
+    {id:'str',n:'Estrella',c:'#2ecc71',path:(ctx,x,y,s,col)=>{ctx.beginPath();ctx.strokeStyle=col;ctx.lineWidth=s*0.08;for(let i=0;i<5;i++){ctx.lineTo(Math.cos((18+i*72)/180*Math.PI)*s/2.2+x,-Math.sin((18+i*72)/180*Math.PI)*s/2.2+y);ctx.lineTo(Math.cos((54+i*72)/180*Math.PI)*s/4.4+x,-Math.sin((54+i*72)/180*Math.PI)*s/4.4+y);}ctx.closePath();ctx.stroke();}}
+];
+const SVGS={
+    cir:'<circle cx="50" cy="50" r="38" stroke-width="8" fill="none"/>',
+    crs:'<path d="M50 15 V85 M15 50 H85" stroke-width="8" fill="none"/>',
+    wav:'<path d="M20 35 Q35 15 50 35 T80 35 M20 50 Q35 30 50 50 T80 50 M20 65 Q35 45 50 65 T80 65" stroke-width="8" fill="none"/>',
+    sqr:'<rect x="18" y="18" width="64" height="64" stroke-width="8" fill="none"/>',
+    str:'<path d="M50 12 L62 38 H90 L68 54 L76 82 L50 66 L24 82 L32 54 L10 38 H38 Z" stroke-width="8" fill="none"/>'
+};
+
+let deck=[],logs=[],step=0,isBlind=false,colorLevel=1,totalCards=25;
+let sessionMode='normal'; // 'normal' | 'guest' | 'auto'
+
+// ── MODE SELECTOR ──────────────────────────────────────────────────────────
+function setMode(mode, btn){
+    sessionMode=mode;
+    document.querySelectorAll('.mode-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    const badge=document.getElementById('modeBadge');
+    const fe=document.getElementById('fieldEmisor');
+    const blind=document.getElementById('inBlind');
+    const blindLabel=document.getElementById('blindLabel');
+    const isAuto=mode==='auto'||mode==='auto-guest';
+    if(mode==='normal'){
+        badge.textContent='Protocolo estándar con Emisor y Receptor.';
+        fe.style.display='';
+        blind.checked=false; blind.disabled=false;
+        blindLabel.style.display='';
+        document.getElementById('inEmisor').value='';
+    } else if(mode==='guest'){
+        badge.textContent='Pareja Invitada — sesión sin historial, solo descarga.';
+        fe.style.display='';
+        blind.checked=false; blind.disabled=false;
+        blindLabel.style.display='';
+        document.getElementById('inEmisor').value='';
+    } else if(mode==='auto'){
+        badge.textContent='Test individual — carta oculta, sin Emisor.';
+        fe.style.display='none';
+        blind.checked=true; blind.disabled=true;
+        blindLabel.style.display='none';
+        document.getElementById('inEmisor').value='Auto Test';
+    } else if(mode==='auto-guest'){
+        badge.textContent='Auto Test sin historial — solo descarga de reporte.';
+        fe.style.display='none';
+        blind.checked=true; blind.disabled=true;
+        blindLabel.style.display='none';
+        document.getElementById('inEmisor').value='Auto Test';
+    }
+}
+
+// ── UTILS ──────────────────────────────────────────────────────────────────
+const isSafariIOS=/iP(ad|hone|od)/.test(navigator.userAgent)&&/WebKit/.test(navigator.userAgent);
+
+function fisherYates(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+function showToast(msg,color='#3fb950'){
+    const t=document.getElementById('toast');
+    t.textContent=msg;t.style.background=color;t.style.color=color==='#3fb950'?'#000':'#fff';
+    t.style.opacity='1';setTimeout(()=>t.style.opacity='0',2400);
+}
+
+function showConfirm(title, message, onConfirm){
+    // Remove any existing modal
+    const old=document.getElementById('confirmModal');
+    if(old) old.remove();
+    const modal=document.createElement('div');
+    modal.id='confirmModal';
+    modal.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+    modal.innerHTML=`
+        <div style="background:#161b22;border:1px solid #30363d;border-radius:16px;padding:28px 24px;max-width:340px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.6);">
+            <div style="font-size:1rem;font-weight:bold;color:#f0f6fc;margin-bottom:10px;">${title}</div>
+            <div style="font-size:0.8rem;color:#8b949e;line-height:1.6;margin-bottom:24px;">${message}</div>
+            <div style="display:flex;gap:10px;">
+                <button id="confirmNo"  style="flex:1;padding:12px;border-radius:10px;border:1px solid #30363d;background:transparent;color:#8b949e;font-weight:bold;cursor:pointer;font-size:0.8rem;-webkit-appearance:none;">Cancelar</button>
+                <button id="confirmYes" style="flex:1;padding:12px;border-radius:10px;border:none;background:#f85149;color:#fff;font-weight:bold;cursor:pointer;font-size:0.8rem;-webkit-appearance:none;">Confirmar</button>
+            </div>
+        </div>`;
+    document.body.appendChild(modal);
+    document.getElementById('confirmNo').onclick=()=>modal.remove();
+    document.getElementById('confirmYes').onclick=()=>{ modal.remove(); onConfirm(); };
+    modal.onclick=(e)=>{ if(e.target===modal) modal.remove(); };
+}
+
+// ── DOWNLOAD (Safari iOS compatible) ──────────────────────────────────────
+// Build filename: ZENER-(Receptor)-(DD-MM-YY)
+function buildFileName(receptor){
+    const now=new Date();
+    const dd=String(now.getDate()).padStart(2,'0');
+    const mm=String(now.getMonth()+1).padStart(2,'0');
+    const yy=String(now.getFullYear()).slice(-2);
+    const name=(receptor||'REPORTE').toUpperCase().replace(/\s+/g,'-').replace(/[^A-Z0-9\-]/g,'');
+    return `ZENER-${name}-${dd}-${mm}-${yy}`;
+}
+
+function downloadPNG(canvasId,receptor){
+    const cnv=document.getElementById(canvasId);
+    const dataURL=cnv.toDataURL('image/png',1.0);
+    const fileName=buildFileName(receptor)+'.png';
+    if(isSafariIOS){
+        const w=window.open('');
+        if(w){w.document.write('<img src="'+dataURL+'" style="max-width:100%;display:block;margin:auto;"><p style="text-align:center;font-family:sans-serif;color:#555;font-size:14px;">Mantén presionada la imagen para guardarla</p>');w.document.title=fileName;}
+        showToast('Mantén presionada la imagen para guardar','#58a6ff');
+    } else {
+        const link=document.createElement('a');
+        link.download=fileName;
+        link.href=dataURL;
+        document.body.appendChild(link);link.click();document.body.removeChild(link);
+    }
+}
+
+// ── localStorage with graceful fallback ───────────────────────────────────
+function getHistory(){try{return JSON.parse(localStorage.getItem('zener_history')||'[]');}catch(e){return[];}}
+function saveHistory(h){try{localStorage.setItem('zener_history',JSON.stringify(h));}catch(e){showToast('Almacenamiento no disponible en este navegador','#f85149');}}
+function getAutoHistory(){try{return JSON.parse(localStorage.getItem('zener_history_auto')||'[]');}catch(e){return[];}}
+function saveAutoHistory(h){try{localStorage.setItem('zener_history_auto',JSON.stringify(h));}catch(e){showToast('Almacenamiento no disponible en este navegador','#f85149');}}
+
+// ── NAVIGATION ─────────────────────────────────────────────────────────────
+const ALL=['scr-setup','scr-test','scr-final-notes','scr-report','scr-history','scr-history-auto','scr-sess-report','scr-help','scr-party-lobby','scr-party-host','scr-party-guest','scr-party-session','scr-party-host-session'];
+function hideAll(){ALL.forEach(id=>document.getElementById(id).classList.add('hidden'));}
+function updateAutoHistoryBtn(){
+    const btn=document.getElementById('btnAutoHistory');
+    if(btn) btn.style.display=getAutoHistory().length?'':'none';
+}
+function showSetup(){
+    hideAll();document.getElementById('scr-setup').classList.remove('hidden');
+    updateAutoHistoryBtn();
+}
+function showHistory(){
+    hideAll();document.getElementById('scr-history').classList.remove('hidden');
+    activePeriod='day'; activeWeeks=1;
+    document.querySelectorAll('#scr-history .period-btn').forEach(b=>{
+        b.classList.toggle('active', b.getAttribute('data-period')==='day');
+    });
+    if(document.getElementById('weekLabel')) document.getElementById('weekLabel').textContent='1 Semana';
+    renderHistList();renderChart();
+}
+function showHelp(){
+    hideAll();
+    const el=document.getElementById('scr-help');
+    el.classList.remove('hidden');
+    // Scroll to top — works on iOS Safari and all browsers
+    el.scrollTop=0;
+    window.scrollTo(0,0);
+}
+function showAutoHistory(){
+    hideAll();document.getElementById('scr-history-auto').classList.remove('hidden');
+    activePeriodAuto='day'; activeWeeksAuto=1;
+    document.querySelectorAll('#scr-history-auto .period-btn').forEach(b=>{
+        b.classList.toggle('active', b.getAttribute('data-period')==='day');
+    });
+    if(document.getElementById('weekLabelAuto')) document.getElementById('weekLabelAuto').textContent='1 Semana';
+    renderAutoHistList();renderAutoChart();
+}
+
+// ── RESET ──────────────────────────────────────────────────────────────────
+function resetApp(){
+    deck=[];logs=[];step=0;isBlind=false;colorLevel=1;totalCards=25;
+    sessionMode='normal';
+    hideAll();document.getElementById('scr-setup').classList.remove('hidden');
+    document.querySelector('.stats-hud').style.visibility='visible';
+    ['inEmisor','inReceptor'].forEach(id=>document.getElementById(id).value='');
+    ['inObsNotes','inFinalNotes'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('inBlind').checked=false;
+    document.getElementById('inBlind').disabled=false;
+    document.getElementById('blindLabel').style.display='';
+    document.getElementById('fieldEmisor').style.display='';
+    document.getElementById('inTotalCards').value='25';
+    document.getElementById('inColorLevel').value='1';
+    // Reset mode buttons
+    document.querySelectorAll('.mode-btn').forEach(b=>b.classList.remove('active'));
+    document.getElementById('modeNormal').classList.add('active');
+    document.getElementById('modeBadge').textContent='';
+    ['vDir','vPre','vPos'].forEach(id=>document.getElementById(id).innerText='0');
+    const btn=document.getElementById('btnSave');
+    btn.textContent='Guardar Sesión en Historial';btn.disabled=false;btn.style.color='';btn.style.borderColor='';btn.style.display='';
+}
+
+// ── SESSION FLOW ───────────────────────────────────────────────────────────
+function startSession(){
+    if(sessionMode==='auto'){
+        document.getElementById('inEmisor').value='Auto Test';
+        document.getElementById('inBlind').checked=true;
+    }
+    isBlind=document.getElementById('inBlind').checked;
+    colorLevel=parseInt(document.getElementById('inColorLevel').value);
+    totalCards=parseInt(document.getElementById('inTotalCards').value);
+    hideAll();document.getElementById('scr-test').classList.remove('hidden');
+    // Hide stats HUD in blind mode to avoid interference
+    document.querySelector('.stats-hud').style.visibility=isBlind?'hidden':'visible';
+    deck=[];
+    for(let i=0;i<totalCards/5;i++){
+        SYMBOLS.forEach(s=>{
+            let c='#000000';
+            if(colorLevel===2)c=s.c;
+            if(colorLevel===3)c=COLORS[Math.floor(Math.random()*COLORS.length)];
+            deck.push({...s,renderColor:c});
+        });
+    }
+    fisherYates(deck);
+    const grid=document.getElementById('uiOptionsGrid');
+    grid.innerHTML='';
+    SYMBOLS.forEach(s=>{
+        const btn=document.createElement('div');btn.className='opt-btn';
+        const dc=colorLevel===1?'#000000':s.c;
+        // For black symbols: add a subtle white outline via filter/paint-order trick
+        // All symbols get a subtle white glow so they're visible on dark button backgrounds
+        const isWav=s.id==='wav';
+        const shadowOpacity=isWav&&dc!=='#000000'?0.22:0.65;
+        const svgContent=`<svg viewBox="0 0 100 100" stroke="${dc}" style="filter:drop-shadow(0 0 2px rgba(255,255,255,${shadowOpacity}))">${SVGS[s.id]}</svg>`;
+        btn.innerHTML=`${svgContent}<span>${s.n}</span>`;
+        btn.onclick=()=>{logs.push(s.id);updateStats();step++;if(step<totalCards)drawStep();else goToFinalNotes();};
+        grid.appendChild(btn);
+    });
+    drawStep();
+}
+function drawStep(){
+    document.getElementById('uiStep').innerText=`CARTA ${String(step+1).padStart(2,'0')} / ${totalCards}`;
+    const slot=document.getElementById('uiCardSlot');
+    if(isBlind)slot.innerHTML='<div class="hidden-mark">?</div>';
+    else{const card=deck[step];slot.innerHTML=`<svg viewBox="0 0 100 100" stroke="${card.renderColor}">${SVGS[card.id]}</svg>`;}
+}
+function updateStats(){
+    let d=0,p=0,ps=0;
+    logs.forEach((ans,i)=>{
+        if(ans===deck[i].id)d++;
+        if(i+1<totalCards&&ans===(deck[i+1]&&deck[i+1].id))p++;
+        if(i-1>=0&&ans===(deck[i-1]&&deck[i-1].id))ps++;
+    });
+    document.getElementById('vDir').innerText=d;
+    document.getElementById('vPre').innerText=p;
+    document.getElementById('vPos').innerText=ps;
+}
+function goToFinalNotes(){hideAll();document.getElementById('scr-final-notes').classList.remove('hidden');}
+function processReport(){
+    hideAll();document.getElementById('scr-report').classList.remove('hidden');
+    // Mode-specific UI adjustments
+    const btnSave=document.getElementById('btnSave');
+    const title=document.getElementById('reportTitle');
+    const sub=document.getElementById('reportSubtitle');
+    if(sessionMode==='guest'||sessionMode==='auto-guest'){
+        title.textContent=sessionMode==='auto-guest'?'Reporte Auto Test':'Reporte de Protocolo';
+        sub.textContent=sessionMode==='auto-guest'?'Auto Test · Sin historial':'Sesión de Invitado — Sin historial';
+        btnSave.style.display='none';
+    } else if(sessionMode==='auto'){
+        title.textContent='Reporte Auto Test';
+        sub.textContent='Test Individual';
+        btnSave.style.display='';
+        btnSave.textContent='Guardar Sesión en Historial';
+        btnSave.disabled=false; btnSave.style.color=''; btnSave.style.borderColor='';
+    } else {
+        title.textContent='Reporte de Protocolo';
+        sub.textContent='Datos Procesados';
+        btnSave.style.display='';
+        btnSave.textContent='Guardar Sesión en Historial';
+        btnSave.disabled=false; btnSave.style.color=''; btnSave.style.borderColor='';
+    }
+    generateCanvas();
+}
+
+// ── STREAKS — minimum 3 consecutive ──────────────────────────────────────
+function computeStreaks(logsArr,deckArr,total){
+    const results=logsArr.map((ans,i)=>({
+        hit:ans===(deckArr[i]&&deckArr[i].id),
+        pre:i+1<total&&ans===(deckArr[i+1]&&deckArr[i+1].id),
+        post:i-1>=0&&ans===(deckArr[i-1]&&deckArr[i-1].id)
+    }));
+    const st={dir:[],pre:[],post:[]};let rD=0,rP=0,rPs=0;
+    results.forEach((r,i)=>{
+        if(r.hit)rD++;else{if(rD>=3)st.dir.push({end:i-1,len:rD});rD=0;}
+        if(r.pre)rP++;else{if(rP>=3)st.pre.push({end:i-1,len:rP});rP=0;}
+        if(r.post)rPs++;else{if(rPs>=3)st.post.push({end:i-1,len:rPs});rPs=0;}
+    });
+    if(rD>=3)st.dir.push({end:results.length-1,len:rD});
+    if(rP>=3)st.pre.push({end:results.length-1,len:rP});
+    if(rPs>=3)st.post.push({end:results.length-1,len:rPs});
+    return st;
+}
+
+// ── SAVE SESSION ───────────────────────────────────────────────────────────
+function saveSession(){
+    const emisor=document.getElementById('inEmisor').value||'Emisor';
+    const receptor=document.getElementById('inReceptor').value||'Receptor';
+    const obsNotes=document.getElementById('inObsNotes').value.trim();
+    const finNotes=document.getElementById('inFinalNotes').value.trim();
+    let d=0,p=0,ps=0;
+    logs.forEach((ans,i)=>{
+        if(ans===deck[i].id)d++;
+        if(i+1<totalCards&&ans===(deck[i+1]&&deck[i+1].id))p++;
+        if(i-1>=0&&ans===(deck[i-1]&&deck[i-1].id))ps++;
+    });
+    const isAutoMode=sessionMode==='auto';
+    const h=isAutoMode?getAutoHistory():getHistory();
+    const seqNum=h.length+1;
+    h.push({
+        id:Date.now(),
+        seqNum,
+        date:new Date().toLocaleDateString('es-MX'),
+        time:new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),
+        emisor,receptor,totalCards,colorLevel,
+        blind:document.getElementById('inBlind').checked,
+        d,p,ps,
+        dPct:Math.round((d/totalCards)*100),
+        pPct:Math.round((p/totalCards)*100),
+        psPct:Math.round((ps/totalCards)*100),
+        obsNotes,finNotes,
+        deckIds:deck.map(c=>c.id),
+        logsIds:[...logs],
+        streaks:computeStreaks(logs,deck,totalCards)
+    });
+    if(isAutoMode) saveAutoHistory(h); else saveHistory(h);
+    // Also save to cloud if logged in
+    saveSessionToCloud(h[h.length-1], isAutoMode);
+    const btn=document.getElementById('btnSave');
+    btn.textContent='✓ Sesión Guardada';btn.disabled=true;btn.style.color='#3fb950';btn.style.borderColor='#3fb950';
+    showToast('Sesión guardada correctamente');
+    // Show auto history button on setup if needed
+    const ab=document.getElementById('btnAutoHistory');
+    if(ab&&isAutoMode) ab.style.display='';
+}
+
+// ── SWIPE TO DELETE ────────────────────────────────────────────────────────
+function doDeleteHistory(){
+    try{localStorage.removeItem('zener_history');}catch(e){}
+    showToast('Historial borrado','#f85149');
+    renderHistList();renderChart();
+}
+
+function doDeleteAutoHistory(){
+    try{localStorage.removeItem('zener_history_auto');}catch(e){}
+    showToast('Historial Auto Test borrado','#f85149');
+    renderAutoHistList();renderAutoChart();
+    const ab=document.getElementById('btnAutoHistory');
+    if(ab) ab.style.display='none';
+}
+
+// ── WEEK DROPDOWN (Parejas history) ────────────────────────────────────────
+let activeWeeks=1;
+function toggleWeekDrop(e){
+    e.stopPropagation();
+    const d=document.getElementById('weekDrop');
+    d.style.display=d.style.display==='none'?'block':'none';
+}
+function selectWeeks(n){
+    activeWeeks=n;
+    activePeriod='week';
+    document.getElementById('weekDrop').style.display='none';
+    document.getElementById('weekLabel').textContent=n===1?'1 Semana':n+' Semanas';
+    document.querySelectorAll('#scr-history .period-btn').forEach(b=>b.classList.remove('active'));
+    document.getElementById('weekBtn').classList.add('active');
+    renderChart();
+}
+document.addEventListener('click',()=>{
+    const d=document.getElementById('weekDrop');
+    if(d) d.style.display='none';
+});
+
+// ── WEEK DROPDOWN (Auto history) ───────────────────────────────────────────
+let activeWeeksAuto=1;
+let activePeriodAuto='day';
+function toggleWeekDropAuto(e){
+    e.stopPropagation();
+    const d=document.getElementById('weekDropAuto');
+    d.style.display=d.style.display==='none'?'block':'none';
+}
+function selectWeeksAuto(n){
+    activeWeeksAuto=n;
+    activePeriodAuto='week';
+    document.getElementById('weekDropAuto').style.display='none';
+    document.getElementById('weekLabelAuto').textContent=n===1?'1 Semana':n+' Semanas';
+    document.querySelectorAll('#scr-history-auto .period-btn').forEach(b=>b.classList.remove('active'));
+    document.getElementById('weekBtnAuto').classList.add('active');
+    renderAutoChart();
+}
+function setAutoPeriod(period, btn){
+    activePeriodAuto=period;
+    activeWeeksAuto=1;
+    document.querySelectorAll('#scr-history-auto .period-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    renderAutoChart();
+}
+
+// ── GENERIC SWIPE TO CONFIRM ──────────────────────────────────────────────
+function initSwipe(trackId, thumbId, onConfirm){
+    const track=document.getElementById(trackId);
+    const thumb=document.getElementById(thumbId);
+    if(!track||!thumb)return;
+    // Avoid re-registering if already initialized
+    if(thumb._swipeInit) return; thumb._swipeInit=true;
+    let dragging=false, startX=0, curX=0;
+    const getMax=()=>track.offsetWidth-thumb.offsetWidth-8;
+    function start(x){ dragging=true; startX=x-curX; thumb.style.cursor='grabbing'; }
+    function move(x){
+        if(!dragging)return;
+        curX=Math.max(0,Math.min(getMax(),x-startX));
+        thumb.style.left=(4+curX)+'px';
+        const pct=curX/getMax();
+        thumb.style.background=`rgb(${Math.round(248-pct*80)},${Math.round(81+pct*60)},${Math.round(73+pct*60)})`;
+        if(pct>=0.92){ dragging=false; reset(); onConfirm(); }
+    }
+    function reset(){ thumb.style.left='4px'; curX=0; thumb.style.cursor='grab'; thumb.style.background='var(--danger)'; }
+    function end(){ dragging=false; reset(); }
+    thumb.addEventListener('mousedown',e=>{e.preventDefault();start(e.clientX);});
+    document.addEventListener('mousemove',e=>{if(dragging)move(e.clientX);});
+    document.addEventListener('mouseup',end);
+    thumb.addEventListener('touchstart',e=>{e.preventDefault();start(e.touches[0].clientX);},{passive:false});
+    document.addEventListener('touchmove',e=>{if(dragging){e.preventDefault();move(e.touches[0].clientX);}},{passive:false});
+    document.addEventListener('touchend',end);
+}
+function initSwipeDelete(){ initSwipe('swipeTrack','swipeThumb',doDeleteHistory); }
+function initSwipeDeleteAuto(){ initSwipe('swipeTrackAuto','swipeThumbAuto',doDeleteAutoHistory); }
+
+// ── AUTO HISTORY LIST ──────────────────────────────────────────────────────
+// ── STREAK COINCIDENCES (shared helper) ───────────────────────────────────
+// Returns sum of lengths of runs ≥2 for pre or post coincidences
+function calcStreakCoincidences(logsIds, deckIds, key){
+    if(!logsIds||!deckIds||!logsIds.length) return 0;
+    let run=0, total=0;
+    logsIds.forEach((ans,i)=>{
+        const hit=key==='pre'?(i+1<logsIds.length&&ans===deckIds[i+1]):(i>0&&ans===deckIds[i-1]);
+        if(hit) run++; else{ if(run>=2) total+=run; run=0; }
+    });
+    if(run>=2) total+=run;
+    return total;
+}
+
+function renderAutoHistList(){
+    const h=getAutoHistory();
+    const el=document.getElementById('histListAuto');
+    if(!h.length){
+        el.innerHTML='<div class="sess-empty">No hay sesiones Auto Test guardadas.<br>Completa un Auto Test y guárdalo.</div>';
+        setTimeout(initSwipeDeleteAuto,50); return;
+    }
+    el.innerHTML=h.slice().reverse().map((s,idx)=>{
+        const seqNum=s.seqNum||(h.length-idx);
+        const preC=calcStreakCoincidences(s.logsIds,s.deckIds,'pre');
+        const postC=calcStreakCoincidences(s.logsIds,s.deckIds,'post');
+        const coinLines=[
+            preC>0?`<div style="font-size:0.72rem;font-weight:bold;color:#58a6ff;line-height:1.6;">${preC} coincidencia${preC!==1?'s':''} pre</div>`:'',
+            postC>0?`<div style="font-size:0.72rem;font-weight:bold;color:#f85149;line-height:1.6;">${postC} coincidencia${postC!==1?'s':''} post</div>`:''
+        ].join('');
+        const centerCol=coinLines
+            ?`<div style="flex:1;min-width:0;padding:0 8px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;">${coinLines}</div>`
+            :`<div style="flex:1;min-width:0;"></div>`;
+        return `<div class="sess-row" style="cursor:pointer;align-items:stretch;" onclick="viewSavedAutoSession(${s.id})">
+            <div style="flex:0 0 auto;min-width:0;max-width:48%;">
+                <div class="sess-num"><span style="text-decoration:underline;text-underline-offset:3px;">Auto #${seqNum}</span></div>
+                <div class="sess-pair" style="color:var(--text);">${s.receptor||'—'}</div>
+                <div class="sess-date">${s.date} ${s.time} · ${s.totalCards} cartas</div>
+            </div>
+            ${centerCol}
+            <div class="sess-stats" style="flex:0 0 auto;">
+                <div class="sess-stat"><span class="sv" style="color:#3fb950">${s.d}</span><span class="sl" style="color:#3fb950">${s.dPct}%</span><span class="sl">Dir.</span></div>
+                <div class="sess-stat"><span class="sv" style="color:#58a6ff">${s.p}</span><span class="sl" style="color:#58a6ff">${s.pPct}%</span><span class="sl">Pre.</span></div>
+                <div class="sess-stat"><span class="sv" style="color:#f85149">${s.ps}</span><span class="sl" style="color:#f85149">${s.psPct}%</span><span class="sl">Post.</span></div>
+            </div>
+        </div>`;
+    }).join('');
+    setTimeout(initSwipeDeleteAuto,50);
+}
+
+function viewSavedAutoSession(id){
+    const s=getAutoHistory().find(x=>x.id===id);if(!s)return;
+    hideAll();document.getElementById('scr-sess-report').classList.remove('hidden');
+    const seqNum=s.seqNum||getAutoHistory().findIndex(x=>x.id===s.id)+1;
+    window._sessReceptor=s.receptor||'';
+    document.getElementById('sessReportSubtitle').textContent=`Auto #${seqNum} · ${s.date}`;
+    renderSavedCanvas(s);
+}
+
+// ── AUTO CHART ─────────────────────────────────────────────────────────────
+function filterByPeriodAuto(sessions){
+    return filterByPeriodGeneric(sessions, activePeriodAuto, activeWeeksAuto);
+}
+
+function downloadAutoChartPNG(){
+    const receptor=document.getElementById('inReceptor').value||'AUTO';
+    const now=new Date();
+    const dd=String(now.getDate()).padStart(2,'0');
+    const mm=String(now.getMonth()+1).padStart(2,'0');
+    const yy=String(now.getFullYear()).slice(-2);
+    const name=(receptor).toUpperCase().replace(/\s+/g,'-').replace(/[^A-Z0-9\-]/g,'');
+    const fileName=`ZENER-AUTO-${name}-${dd}-${mm}-${yy}.png`;
+    const cnv=document.getElementById('cnvChartAuto');
+    const dataURL=cnv.toDataURL('image/png',1.0);
+    if(isSafariIOS){
+        const w=window.open('');
+        if(w){w.document.write('<img src="'+dataURL+'" style="max-width:100%;display:block;margin:auto;">');w.document.title=fileName;}
+        showToast('Mantén presionada la imagen para guardar','#58a6ff');
+    } else {
+        const link=document.createElement('a');
+        link.download=fileName; link.href=dataURL;
+        document.body.appendChild(link); link.click(); document.body.removeChild(link);
+    }
+}
+
+function renderAutoChart(){
+    const all=getAutoHistory();
+    const h=filterByPeriodAuto(all);
+    renderChartOnCanvas('cnvChartAuto', h, activePeriodAuto, activeWeeksAuto);
+}
+
+// ── RENDER HISTORY LIST — grouped by week/month/year ──────────────────────
+function renderHistList(){
+    const h=getHistory();const el=document.getElementById('histList');
+    if(!h.length){
+        el.innerHTML='<div class="sess-empty">No hay sesiones guardadas.<br>Completa una prueba y presiona<br>"Guardar Sesión en Historial".</div>';
+        setTimeout(initSwipeDelete,50);
+        return;
+    }
+
+    // Parse stored date → JS Date (handles d/m/yyyy and m/d/yyyy)
+    function parseDate(dateStr){
+        const p=dateStr.split('/');
+        if(p.length!==3) return new Date(dateStr);
+        const d1=new Date(`${p[2]}-${p[1].padStart(2,'0')}-${p[0].padStart(2,'0')}`);
+        const d2=new Date(`${p[2]}-${p[0].padStart(2,'0')}-${p[1].padStart(2,'0')}`);
+        return isNaN(d1)?d2:d1;
+    }
+
+    // Group sessions by week (Mon–Sun)
+    function getWeekKey(dateStr){
+        const d=parseDate(dateStr);
+        if(isNaN(d)) return 'Sin fecha';
+        const day=d.getDay(); // 0=Sun
+        const diffToMon=day===0?-6:1-day;
+        const mon=new Date(d); mon.setDate(d.getDate()+diffToMon);
+        const sun=new Date(mon); sun.setDate(mon.getDate()+6);
+        const fmt=dt=>`${dt.getDate()}/${dt.getMonth()+1}/${dt.getFullYear()}`;
+        return `Semana ${fmt(mon)} – ${fmt(sun)}`;
+    }
+
+    // Group by month
+    function getMonthKey(dateStr){
+        const d=parseDate(dateStr);
+        if(isNaN(d)) return 'Sin fecha';
+        const months=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+        return `${months[d.getMonth()]} ${d.getFullYear()}`;
+    }
+
+    // Group by year
+    function getYearKey(dateStr){
+        const d=parseDate(dateStr);
+        if(isNaN(d)) return 'Sin fecha';
+        return String(d.getFullYear());
+    }
+
+    // Choose grouping based on span of sessions
+    const sorted=[...h].sort((a,b)=>{
+        const da=parseDate(a.date), db=parseDate(b.date);
+        return da-db;
+    });
+    const first=parseDate(sorted[0].date), last=parseDate(sorted[sorted.length-1].date);
+    const spanDays=isNaN(first)||isNaN(last)?0:Math.round((last-first)/(1000*60*60*24));
+    const getKey=spanDays>90?getYearKey:spanDays>14?getMonthKey:getWeekKey;
+
+    // Build groups (preserve original reverse order within each group)
+    const groups={};
+    h.slice().reverse().forEach((s,ridx)=>{
+        const k=getKey(s.date);
+        if(!groups[k]) groups[k]=[];
+        groups[k].push({s,ridx});
+    });
+
+    // Build HTML
+    const groupKeys=Object.keys(groups);
+    // Only expand the first group by default
+    const html=groupKeys.map((gk,gi)=>{
+        const items=groups[gk];
+        const isOpen=gi===0;
+        const rows=items.map(({s,ridx})=>{
+            const seqNum=s.seqNum||(h.length-ridx);
+            const ts=((s.streaks&&s.streaks.dir&&s.streaks.dir.length)||0)+((s.streaks&&s.streaks.pre&&s.streaks.pre.length)||0)+((s.streaks&&s.streaks.post&&s.streaks.post.length)||0);
+            const badge=ts?`<span class="streak-badge badge-dir">${ts} racha${ts>1?'s':''}</span>`:'';
+            const preC=calcStreakCoincidences(s.logsIds,s.deckIds,'pre');
+            const postC=calcStreakCoincidences(s.logsIds,s.deckIds,'post');
+            const coinLines=[
+                preC>0?`<div style="font-size:0.72rem;font-weight:bold;color:#58a6ff;line-height:1.6;">${preC} coincidencia${preC!==1?'s':''} pre</div>`:'',
+                postC>0?`<div style="font-size:0.72rem;font-weight:bold;color:#f85149;line-height:1.6;">${postC} coincidencia${postC!==1?'s':''} post</div>`:''
+            ].join('');
+            const centerCol=coinLines
+                ?`<div style="flex:1;min-width:0;padding:0 8px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;">${coinLines}</div>`
+                :`<div style="flex:1;min-width:0;"></div>`;
+            return `<div class="sess-row" style="cursor:pointer;align-items:stretch;" onclick="viewSavedSession(${s.id})">
+                <div style="flex:0 0 auto;min-width:0;max-width:48%;">
+                    <div class="sess-num"><span style="text-decoration:underline;text-underline-offset:3px;">Sesión #${seqNum}</span>${badge}</div>
+                    <div class="sess-pair">${s.emisor} → ${s.receptor}</div>
+                    <div class="sess-date">${s.date} ${s.time} · ${s.totalCards} cartas</div>
+                </div>
+                ${centerCol}
+                <div class="sess-stats" style="flex:0 0 auto;">
+                    <div class="sess-stat"><span class="sv" style="color:#3fb950">${s.d}</span><span class="sl" style="color:#3fb950">${s.dPct}%</span><span class="sl">Dir.</span></div>
+                    <div class="sess-stat"><span class="sv" style="color:#58a6ff">${s.p}</span><span class="sl" style="color:#58a6ff">${s.pPct}%</span><span class="sl">Pre.</span></div>
+                    <div class="sess-stat"><span class="sv" style="color:#f85149">${s.ps}</span><span class="sl" style="color:#f85149">${s.psPct}%</span><span class="sl">Post.</span></div>
+                </div>
+            </div>`;
+        }).join('');
+        const gid=`grp_${gi}`;
+        return `<div style="margin-bottom:10px;border:1px solid var(--border);border-radius:10px;overflow:hidden;">
+            <div onclick="toggleGroup('${gid}')" style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:rgba(0,0,0,0.25);cursor:pointer;-webkit-user-select:none;-moz-user-select:none;user-select:none;">
+                <span style="font-size:0.75rem;font-weight:bold;color:var(--text);text-transform:uppercase;letter-spacing:0.5px;">${gk}</span>
+                <span style="display:flex;align-items:center;gap:8px;">
+                    <span style="font-size:0.65rem;color:var(--gray);">${items.length} ${items.length!==1?'sesiones':'sesión'}</span>
+                    <span id="${gid}_arr" style="color:var(--gray);font-size:0.8rem;transition:transform 0.2s;display:inline-block;transform:${isOpen?'rotate(90deg)':'rotate(0deg)'}">›</span>
+                </span>
+            </div>
+            <div id="${gid}" style="display:${isOpen?'block':'none'};">${rows}</div>
+        </div>`;
+    }).join('');
+
+    el.innerHTML=html;
+    setTimeout(initSwipeDelete,50);
+}
+
+function toggleGroup(gid){
+    const el=document.getElementById(gid);
+    const arr=document.getElementById(gid+'_arr');
+    if(!el)return;
+    const open=el.style.display==='none';
+    el.style.display=open?'block':'none';
+    if(arr) arr.style.transform=open?'rotate(90deg)':'rotate(0deg)';
+}
+
+// ── PERIOD FILTER ─────────────────────────────────────────────────────────
+function setPeriod(period, btn){
+    activePeriod=period;
+    activeWeeks=1;
+    if(document.getElementById('weekLabel')) document.getElementById('weekLabel').textContent='1 Semana';
+    document.querySelectorAll('#scr-history .period-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    renderChart();
+}
+
+// ── GENERIC FILTER ─────────────────────────────────────────────────────────
+function filterByPeriodGeneric(sessions, period, weeks){
+    weeks=weeks||1;
+    if(period==='all') return sessions;
+    const now=new Date();
+    const cutoff=new Date(now);
+    if(period==='day')   cutoff.setHours(0,0,0,0);
+    if(period==='week')  cutoff.setDate(now.getDate()-(7*weeks));
+    if(period==='month') cutoff.setMonth(now.getMonth()-1);
+    if(period==='year')  cutoff.setFullYear(now.getFullYear()-1);
+    const cutoffTs=cutoff.getTime();
+    return sessions.filter(s=>{
+        if(typeof s.id==='number'&&s.id>1000000000000) return s.id>=cutoffTs;
+        const parts=s.date.split('/');
+        if(parts.length===3){
+            const d1=new Date(`${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`);
+            const d2=new Date(`${parts[2]}-${parts[0].padStart(2,'0')}-${parts[1].padStart(2,'0')}`);
+            const d=!isNaN(d1.getTime())?d1:d2;
+            return !isNaN(d.getTime())&&d.getTime()>=cutoffTs;
+        }
+        return true;
+    });
+}
+
+function filterByPeriod(sessions, period){ return filterByPeriodGeneric(sessions, period, activeWeeks); }
+
+// ── PERIOD-AWARE FILENAME ──────────────────────────────────────────────────
+function buildChartFileName(receptor, period, weeks){
+    weeks=weeks||1;
+    const name=(receptor||'GRAFICA').toUpperCase().replace(/\s+/g,'-').replace(/[^A-Z0-9\-]/g,'');
+    const now=new Date();
+    const fmt=d=>`${String(d.getDate()).padStart(2,'0')}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    const yy=String(now.getFullYear()).slice(-2);
+    if(period==='day'){
+        return `ZENER-${name}-${fmt(now)}-${yy}`;
+    } else if(period==='week'){
+        const start=new Date(now); start.setDate(now.getDate()-(7*weeks));
+        const prefix=weeks===1?'S':weeks+'S';
+        return `ZENER-${name}-${prefix}${fmt(start)}_${fmt(now)}-${yy}`;
+    } else if(period==='month'){
+        return `ZENER-${name}-MES${String(now.getMonth()+1).padStart(2,'0')}-${yy}`;
+    } else if(period==='year'){
+        return `ZENER-${name}-AÑO${now.getFullYear()}`;
+    } else {
+        return `ZENER-${name}-TODO-${fmt(now)}-${yy}`;
+    }
+}
+
+// Chart download — period-aware filename
+function downloadChartPNG(){
+    const receptor=document.getElementById('inReceptor').value||'';
+    const fileName=buildChartFileName(receptor, activePeriod, activeWeeks)+'.png';
+    const cnv=document.getElementById('cnvChart');
+    const dataURL=cnv.toDataURL('image/png',1.0);
+    if(isSafariIOS){
+        const w=window.open('');
+        if(w){w.document.write('<img src="'+dataURL+'" style="max-width:100%;display:block;margin:auto;"><p style="text-align:center;font-family:sans-serif;color:#555;font-size:14px;">Mantén presionada la imagen para guardarla</p>');w.document.title=fileName;}
+        showToast('Mantén presionada la imagen para guardar','#58a6ff');
+    } else {
+        const link=document.createElement('a');
+        link.download=fileName; link.href=dataURL;
+        document.body.appendChild(link); link.click(); document.body.removeChild(link);
+    }
+}
+
+// ── RENDER CHART — delegates to shared canvas renderer ─────────────────────
+function renderChart(){
+    const h=filterByPeriod(getHistory(), activePeriod);
+    renderChartOnCanvas('cnvChart', h, activePeriod, activeWeeks);
+}
+
+function renderChartOnCanvas(canvasId, h, period, weeks){
+    const cnv=document.getElementById(canvasId);
+    const dpr=Math.min(window.devicePixelRatio||1,2);
+    const containerW=cnv.parentElement?cnv.parentElement.clientWidth||460:460;
+    const W=Math.max(320,Math.min(containerW,800));
+    const H=Math.round(W*0.66);
+
+    cnv.width=W*dpr; cnv.height=H*dpr;
+    cnv.style.width='100%'; cnv.style.height='auto';
+    const ctx=cnv.getContext('2d');
+    ctx.scale(dpr,dpr);
+
+    const fSm=Math.max(8,Math.round(W*0.012));
+    const fMd=Math.max(9,Math.round(W*0.014));
+
+    ctx.fillStyle='#0d1117'; ctx.fillRect(0,0,W,H);
+
+    // Title
+    const receptorName=(document.getElementById('inReceptor').value||'').toUpperCase();
+    const periodLabels={day:'Último día',week:'Última semana',month:'Último mes',year:'Último año',all:'Todas las sesiones'};
+    ctx.textAlign='center';
+    ctx.fillStyle='#f0f6fc'; ctx.font=`bold ${Math.round(W*0.022)}px Arial`;
+    ctx.fillText('GRÁFICA DE AVANCE',W/2,26);
+    if(receptorName){
+        ctx.font=`bold ${Math.round(W*0.016)}px Arial`; ctx.fillStyle='#58a6ff';
+        ctx.fillText(receptorName,W/2,44);
+        ctx.font=`${Math.round(W*0.013)}px Arial`; ctx.fillStyle='#484f58';
+        ctx.fillText('INTG CITY LABS — Zener Protocol',W/2,58);
+        ctx.font=`bold ${Math.round(W*0.013)}px Arial`; ctx.fillStyle='#3d444d';
+        ctx.fillText(periodLabels[period],W/2,72);
+    } else {
+        ctx.font=`${Math.round(W*0.014)}px Arial`; ctx.fillStyle='#484f58';
+        ctx.fillText('INTG CITY LABS — Zener Protocol',W/2,44);
+        ctx.font=`bold ${Math.round(W*0.014)}px Arial`; ctx.fillStyle='#58a6ff';
+        ctx.fillText(periodLabels[period],W/2,60);
+    }
+
+    // Empty states
+    if(h.length<1){
+        ctx.fillStyle='#8b949e'; ctx.font='14px Arial'; ctx.textAlign='center';
+        ctx.fillText('Sin sesiones en este período.',W/2,H/2);
+        ctx.fillStyle='#484f58'; ctx.font='12px Arial';
+        ctx.fillText('Prueba seleccionando un período más amplio.',W/2,H/2+20);
+        return;
+    }
+
+    // Build series values per session
+    const seriesData=h.map((s,i)=>({
+        d:    s.d  ||0,
+        preC: calcStreakCoincidences(s.logsIds, s.deckIds, 'pre'),
+        postC:calcStreakCoincidences(s.logsIds, s.deckIds, 'post'),
+        total:s.totalCards||25,
+        seq:  s.seqNum||(i+1),
+        date: s.date,
+        time: s.time||''
+    }));
+
+    // Max value for Y axis (at least totalCards, so scale is consistent)
+    const maxTotal=Math.max(...seriesData.map(s=>s.total));
+    // Y axis ticks: 0 to maxTotal, step intelligently
+    const yStep=maxTotal<=25?5:maxTotal<=50?10:maxTotal<=100?20:25;
+    const yTicks=[];
+    for(let t=0;t<=maxTotal;t+=yStep) yTicks.push(t);
+    if(yTicks[yTicks.length-1]<maxTotal) yTicks.push(maxTotal);
+
+    const rotateDates=h.length>5;
+    const PAD={top:72, right:Math.round(W*0.06), bottom:rotateDates?90:68, left:Math.round(W*0.11)};
+    const gW=W-PAD.left-PAD.right, gH=H-PAD.top-PAD.bottom;
+
+    // Chart panel
+    ctx.fillStyle='#161b22'; ctx.fillRect(PAD.left,PAD.top,gW,gH);
+    ctx.strokeStyle='#30363d'; ctx.lineWidth=1; ctx.strokeRect(PAD.left,PAD.top,gW,gH);
+
+    // Y gridlines + labels
+    yTicks.forEach(val=>{
+        const y=PAD.top+gH-(val/maxTotal)*gH;
+        const isAzar=Math.round((val/maxTotal)*100)===20;
+        ctx.strokeStyle=isAzar?'#444c56':val===0?'#30363d':'#21262d';
+        ctx.lineWidth=val===0?1.5:isAzar?1.2:1;
+        ctx.beginPath(); ctx.moveTo(PAD.left,y); ctx.lineTo(PAD.left+gW,y); ctx.stroke();
+        ctx.fillStyle=isAzar?'#7d8590':'#3d444d';
+        ctx.font=(isAzar?'bold ':'')+fSm+'px Arial'; ctx.textAlign='right';
+        ctx.fillText(val,PAD.left-5,y+4);
+    });
+
+    // Y axis label
+    ctx.save(); ctx.translate(Math.round(W*0.024),PAD.top+gH/2); ctx.rotate(-Math.PI/2);
+    ctx.fillStyle='#484f58'; ctx.font='bold '+fSm+'px Arial'; ctx.textAlign='center';
+    ctx.fillText('coincidencias',0,0); ctx.restore();
+
+    // Chance baseline — 20% of totalCards
+    const chanceVal=maxTotal*0.2;
+    const baseY=PAD.top+gH-(chanceVal/maxTotal)*gH;
+    ctx.save(); ctx.setLineDash([6,4]); ctx.strokeStyle='#444c56'; ctx.lineWidth=1.2;
+    ctx.beginPath(); ctx.moveTo(PAD.left,baseY); ctx.lineTo(PAD.left+gW,baseY); ctx.stroke(); ctx.restore();
+    ctx.fillStyle='#484f58'; ctx.font='bold '+fSm+'px Arial'; ctx.textAlign='left';
+    ctx.fillText('azar',PAD.left+4,baseY-5);
+
+    const n=h.length;
+    const xOf=i=>n===1?PAD.left+gW/2:PAD.left+(i/(n-1))*gW;
+    const yOf=val=>PAD.top+gH-(Math.max(0,val)/maxTotal)*gH;
+
+    // X gridlines
+    seriesData.forEach((_,i)=>{
+        ctx.strokeStyle='#1c2128'; ctx.lineWidth=1;
+        ctx.beginPath(); ctx.moveTo(xOf(i),PAD.top); ctx.lineTo(xOf(i),PAD.top+gH); ctx.stroke();
+    });
+
+    // 3 series: Aciertos Directos, Pre-coincidencias, Post-coincidencias
+    const series=[
+        {key:'d',     color:'#3fb950', label:'Aciertos Directos', lw:2.5},
+        {key:'preC',  color:'#58a6ff', label:'Pre-coincidencias',  lw:2},
+        {key:'postC', color:'#f85149', label:'Post-coincidencias', lw:2}
+    ];
+
+    // Area fills
+    series.forEach(ser=>{
+        const pts=seriesData.map((s,i)=>({x:xOf(i), y:yOf(s[ser.key])}));
+        ctx.save();
+        ctx.globalAlpha=0.07; ctx.fillStyle=ser.color;
+        ctx.beginPath();
+        pts.forEach((p,i)=>i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y));
+        ctx.lineTo(pts[pts.length-1].x,PAD.top+gH);
+        ctx.lineTo(pts[0].x,PAD.top+gH);
+        ctx.closePath(); ctx.fill(); ctx.globalAlpha=1;
+        ctx.restore();
+    });
+
+    // Lines
+    series.forEach(ser=>{
+        const pts=seriesData.map((s,i)=>({x:xOf(i), y:yOf(s[ser.key])}));
+        ctx.save();
+        ctx.strokeStyle=ser.color; ctx.lineWidth=ser.lw;
+        ctx.lineJoin='round'; ctx.lineCap='round'; ctx.setLineDash([]);
+        ctx.beginPath();
+        pts.forEach((p,i)=>i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y));
+        ctx.stroke(); ctx.restore();
+    });
+
+    // Dots — draw all three series
+    series.forEach((ser,si)=>{
+        const pts=seriesData.map((s,i)=>({x:xOf(i), y:yOf(s[ser.key])}));
+        ctx.save();
+        pts.forEach(pt=>{
+            ctx.beginPath(); ctx.arc(pt.x,pt.y,si===0?5:4,0,Math.PI*2);
+            ctx.fillStyle=ser.color; ctx.fill();
+            ctx.strokeStyle='#0d1117'; ctx.lineWidth=1.2; ctx.stroke();
+        });
+        ctx.restore();
+    });
+
+    // Value labels — one pass per session, all 3 numbers stacked above the highest point
+    seriesData.forEach((s,i)=>{
+            const x=xOf(i);
+            // Find the Y of the highest value (smallest Y = highest on canvas)
+            const yD=yOf(s.d), yP=yOf(s.preC), yPs=yOf(s.postC);
+            const topY=Math.min(yD, yP, yPs);
+            // Stack: green (top), blue (middle), red (bottom) — always above chart top line
+            const lineH=fSm+3;
+            const stackBase=Math.max(PAD.top+lineH*3+4, topY-4);
+            const vals=[
+                {val:s.d,     color:'#3fb950'},
+                {val:s.preC,  color:'#58a6ff'},
+                {val:s.postC, color:'#f85149'}
+            ];
+            ctx.save();
+            vals.forEach((v,vi)=>{
+                const ly=stackBase-(2-vi)*lineH;
+                ctx.font='bold '+fSm+'px Arial'; ctx.textAlign='center';
+                // Tiny dark bg for readability
+                const tw=ctx.measureText(String(v.val)).width;
+                ctx.fillStyle='rgba(13,17,23,0.75)';
+                ctx.fillRect(x-tw/2-2, ly-fSm, tw+4, fSm+2);
+                ctx.fillStyle=v.color;
+                ctx.fillText(String(v.val), x, ly);
+            });
+            ctx.restore();
+        });
+
+    // X axis labels — session # + time (day filter) or date (other filters)
+    const stepX=h.length>10?Math.ceil(h.length/8):1;
+    seriesData.forEach((s,i)=>{
+        if(i%stepX!==0&&i!==seriesData.length-1)return;
+        const x=xOf(i);
+        const yBase=PAD.top+gH+6;
+        ctx.save(); ctx.textAlign='center';
+        ctx.font='bold '+fMd+'px Arial'; ctx.fillStyle='#c9d1d9';
+        ctx.fillText('#'+s.seq, x, yBase+14);
+        // Day filter → show time; other filters → show date
+        const subLabel=period==='day' ? s.time : s.date;
+        if(rotateDates && period!=='day'){
+            ctx.translate(x, yBase+26); ctx.rotate(-Math.PI/4);
+            ctx.font=fSm+'px Arial'; ctx.fillStyle='#6e7681'; ctx.textAlign='right';
+            ctx.fillText(subLabel, 0, 0);
+        } else {
+            ctx.font=fSm+'px Arial'; ctx.fillStyle='#6e7681';
+            ctx.fillText(subLabel, x, yBase+26);
+        }
+        ctx.restore();
+    });
+
+    // Legend
+    const legH=22;
+    const legY=H-legH-4;
+    ctx.fillStyle='#161b22'; ctx.fillRect(PAD.left,legY,gW,legH);
+    ctx.strokeStyle='#21262d'; ctx.lineWidth=1; ctx.strokeRect(PAD.left,legY,gW,legH);
+    const legSp=gW/3;
+    series.forEach((ser,i)=>{
+        const lx=PAD.left+10+i*legSp;
+        ctx.beginPath(); ctx.arc(lx+4,legY+11,4,0,Math.PI*2);
+        ctx.fillStyle=ser.color; ctx.fill();
+        ctx.fillStyle='#c9d1d9'; ctx.font='bold '+fSm+'px Arial'; ctx.textAlign='left';
+        ctx.fillText(ser.label,lx+12,legY+15);
+    });
+    // Signature
+    ctx.save();
+    ctx.font=`italic ${Math.max(7,Math.round(W*0.011))}px Arial`;
+    ctx.fillStyle='rgba(255,255,255,0.12)';
+    ctx.textAlign='right';
+    ctx.fillText('Desarrollado por @ARSifuentes',W-8,H-6);
+    ctx.restore();
+}
+
+// ── VIEW SAVED SESSION ─────────────────────────────────────────────────────
+function viewSavedSession(id){
+    const s=getHistory().find(x=>x.id===id);if(!s)return;
+    hideAll();document.getElementById('scr-sess-report').classList.remove('hidden');
+    const seqNum=s.seqNum||getHistory().findIndex(x=>x.id===s.id)+1;
+    window._sessReceptor=s.receptor||'';
+    document.getElementById('sessReportSubtitle').textContent=`Sesión #${seqNum} · ${s.date}`;
+    renderSavedCanvas(s);
+}
+
+// ── CANVAS HELPERS ─────────────────────────────────────────────────────────
+function wrapText(ctx,text,x,y,maxW,lh){
+    const words=text.split(' ');let line='',cy=y;
+    for(let n=0;n<words.length;n++){
+        const tl=line+words[n]+' ';
+        if(ctx.measureText(tl).width>maxW&&n>0){ctx.fillText(line,x,cy);line=words[n]+' ';cy+=lh;}else line=tl;
+    }
+    ctx.fillText(line,x,cy);return cy+lh;
+}
+
+// All section headers use the same style: light blue bg (#e8f0fe), dark blue text (#1a56db)
+// EXCEPT: dark headers (stats, sequence) use #0d1117 bg / #ffffff text for contrast
+function drawSectionHeader(ctx,title,y,bgColor,textColor){
+    ctx.save();
+    ctx.fillStyle=bgColor;ctx.fillRect(50,y,700,32);
+    ctx.textAlign='center';ctx.fillStyle=textColor;ctx.font='bold 13px Arial';
+    ctx.fillText(title,400,y+21);
+    ctx.restore();return y+32;
+}
+
+function drawLink(ctx,x1,y1,x2,y2,c,w){
+    ctx.save();ctx.beginPath();ctx.strokeStyle=c;ctx.lineWidth=w;ctx.setLineDash([]);ctx.lineCap='round';
+    ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();ctx.restore();
+}
+
+// ── SHARED REPORT BUILDER ─────────────────────────────────────────────────
+function buildReport(ctx,cnv,P){
+    const {emisor,receptor,obsNotes,finNotes,d,p,ps,totalCards,colorLevel,dateStr,timeStr,sessId,seqNum,logsArr,deckArr,streaks}=P;
+    const hitRate=d/totalCards;
+
+    const diag=hitRate>0.25
+        ?"Se ha detectado una correlación superior al azar. Los datos sugieren receptividad extrasensorial activa durante la sesión, superando significativamente el umbral de probabilidad estándar."
+        :hitRate<0.15
+        ?"Se observa un fenómeno de 'Psi-Missing'. El receptor evita estadísticamente el objetivo, indicando interferencia cognitiva o barrera psíquica inconsciente."
+        :"Los resultados son consistentes con la probabilidad estadística base (20%). No se halló evidencia concluyente de transferencia extrasensorial en esta muestra.";
+    const cond=colorLevel===3
+        ?"Bajo caos cromático, los aciertos poseen valor probatorio superior al eliminarse el anclaje mental por patrones de color repetitivos."
+        :"El control monocromático o estándar permitió focalización uniforme del receptor durante el proceso.";
+    const moveDiag=(p+ps)>(totalCards*0.4)
+        ?"Alta tasa de desplazamiento temporal detectada (precognición/postcognición). El receptor capta información fuera de la sincronía del presente inmediato."
+        :"La percepción se mantiene anclada al momento presente de la proyección, sin desviaciones temporales notables.";
+
+    ctx.font='13px Arial';
+    const tw=t=>{const ws=t.split(' ');let lc=1,l='';ws.forEach(w=>{const tl=l+w+' ';if(ctx.measureText(tl).width>620){lc++;l=w+' ';}else l=tl;});return lc*22;};
+
+    const diagH=tw(diag)+tw(cond)+tw(moveDiag)+160;
+    const obsH=obsNotes?(tw(obsNotes)+70):0;
+    const finH=finNotes?(tw(finNotes)+70):0;
+    // ROW_H=56, no legend rows (+30 for col headers)
+    const listH=(logsArr.length*56)+80;
+    // Stat block: each bar=44px + pill lines
+    const stDir=streaks.dir.length,stPre=streaks.pre.length,stPost=streaks.post.length;
+    // Direct hits: each hit gets a pill (grouped by consecutive, so worst case = d hits)
+    const directHits=logsArr.filter((ans,i)=>ans===(deckArr[i]&&deckArr[i].id)).length;
+    // Compute pre/post streaks≥2 count
+    let preS2=0,postS2=0,runP=0,runPs=0;
+    logsArr.forEach((ans,i)=>{
+        if(i+1<logsArr.length&&ans===(deckArr[i+1]&&deckArr[i+1].id))runP++;else{if(runP>=2)preS2++;runP=0;}
+        if(i>0&&ans===(deckArr[i-1]&&deckArr[i-1].id))runPs++;else{if(runPs>=2)postS2++;runPs=0;}
+    });
+    if(runP>=2)preS2++;if(runPs>=2)postS2++;
+    const streakLinesH=(directHits*22)+(preS2*22)+(postS2*22)+20;
+    const statBlockH=42+(3*70)+streakLinesH+24;
+    const scaleH=4*50+60;
+    const sbH=148;
+
+    cnv.width=800;
+    cnv.height=170+(sbH+18)+obsH+statBlockH+listH+finH+scaleH+diagH+130;
+
+    // BG + blue bar
+    ctx.fillStyle='#ffffff';ctx.fillRect(0,0,cnv.width,cnv.height);
+    ctx.fillStyle='#1f6feb';ctx.fillRect(0,0,15,cnv.height);
+
+    // 1. HEADER
+    ctx.textAlign='center';
+    ctx.fillStyle='#0d1117';ctx.font='bold 48px Arial';ctx.fillText('ZENER TEST',400,75);
+    ctx.font='bold 30px Arial';ctx.fillStyle='#1f6feb';ctx.fillText('INTG CITY',400,118);
+    ctx.font='bold 13px Arial';ctx.fillStyle='#8b949e';
+    ctx.fillText(seqNum?'REPORTE DE PROTOCOLO — SESIÓN #'+seqNum:'REPORTE DE PROTOCOLO',400,148);
+
+    let curY=170;
+
+    // 2. SESSION BOX — dynamic height, uniform font for all values
+    ctx.font='bold 13px Arial';
+    const nivelStr=colorLevel===1?'COLOR NEGRO':colorLevel===2?'COLOR ESTÁNDAR':'CAOS ALEATORIO';
+    ctx.fillStyle='#f8f9fb';ctx.fillRect(50,curY,700,sbH);
+    ctx.strokeStyle='#d0d7de';ctx.lineWidth=1;ctx.strokeRect(50,curY,700,sbH);
+    // Title bar
+    ctx.fillStyle='#e8f0fe';ctx.fillRect(50,curY,700,28);
+    ctx.textAlign='left';ctx.font='bold 12px Arial';ctx.fillStyle='#1a56db';
+    ctx.fillText('DATOS DE LA SESIÓN',70,curY+19);
+    // Left column: Receptor first, then Emisor
+    const sbTop=curY+42;
+    ctx.font='10px Arial';ctx.fillStyle='#999';ctx.fillText('RECEPTOR',70,sbTop);
+    ctx.font='bold 13px Arial';ctx.fillStyle='#111';ctx.fillText(receptor.toUpperCase(),70,sbTop+16);
+    ctx.font='10px Arial';ctx.fillStyle='#999';ctx.fillText('EMISOR',70,sbTop+38);
+    ctx.font='bold 13px Arial';ctx.fillStyle='#111';ctx.fillText(emisor.toUpperCase(),70,sbTop+54);
+    // Right column
+    ctx.textAlign='right';
+    ctx.font='10px Arial';ctx.fillStyle='#999';ctx.fillText('FECHA',730,sbTop);
+    ctx.font='bold 13px Arial';ctx.fillStyle='#111';ctx.fillText(dateStr,730,sbTop+16);
+    ctx.font='10px Arial';ctx.fillStyle='#999';ctx.fillText('HORA',730,sbTop+38);
+    ctx.font='bold 13px Arial';ctx.fillStyle='#111';ctx.fillText(timeStr,730,sbTop+54);
+    // Bottom row: muestra + nivel — same bold 13px, centered, with divider line
+    ctx.strokeStyle='#e0e4ea';ctx.lineWidth=0.5;
+    ctx.beginPath();ctx.moveTo(70,sbTop+70);ctx.lineTo(730,sbTop+70);ctx.stroke();
+    ctx.textAlign='center';ctx.font='10px Arial';ctx.fillStyle='#999';
+    ctx.fillText('MUESTRA',220,sbTop+84);
+    ctx.font='bold 13px Arial';ctx.fillStyle='#111';
+    ctx.fillText(`${totalCards} CARTAS`,220,sbTop+100);
+    ctx.font='10px Arial';ctx.fillStyle='#999';ctx.textAlign='center';
+    ctx.fillText('NIVEL',560,sbTop+84);
+    ctx.font='bold 13px Arial';ctx.fillStyle='#111';
+    ctx.fillText(nivelStr,560,sbTop+100);
+    curY+=sbH+18;
+
+    // 3. OBS NOTES
+    if(obsNotes){
+        const hb=drawSectionHeader(ctx,'OBSERVACIONES PREVIAS',curY,'#e8f0fe','#1a56db');
+        ctx.textAlign='left';ctx.font='italic 13px Arial';ctx.fillStyle='#555';
+        curY=wrapText(ctx,`"${obsNotes}"`,70,hb+18,660,20)+25;
+    }
+
+    // 4. STAT BARS + STREAKS MERGED
+    drawSectionHeader(ctx,'RESUMEN ESTADÍSTICO DE LA SESIÓN',curY,'#e8f0fe','#1a56db');
+    curY+=42;
+
+    // Helper: crisp outline text — very thin stroke so numbers stay sharp
+    const drawOutlineText=(text,x,y,fillCol,font,align)=>{
+        ctx.save();
+        ctx.font=font;ctx.textAlign=align;
+        ctx.strokeStyle='rgba(0,0,0,0.28)';ctx.lineWidth=1.2;ctx.lineJoin='round';ctx.miterLimit=2;
+        ctx.strokeText(text,x,y);
+        ctx.fillStyle=fillCol;ctx.fillText(text,x,y);
+        ctx.restore();
+    };
+
+    // drawStatWithStreaks — no pill backgrounds, plain text lines in black
+    const drawStatWithStreaks=(label,val,col,streakList,streakLabel,showAllHits,hitPositions)=>{
+        ctx.save();
+        const perc=Math.round((val/totalCards)*100);
+
+        // Label — CENTERED at 400, same font as detail lines
+        ctx.font='bold 13px Arial';ctx.textAlign='center';ctx.fillStyle='#222';
+        ctx.fillText(label,400,curY+15);
+
+        // Value + percentage — centered, color of concept, thin outline
+        drawOutlineText(`${val} / ${totalCards}   (${perc}%)`,400,curY+34,col,'bold 16px Arial','center');
+
+        // Bar track
+        ctx.fillStyle='#e0e2e6';ctx.fillRect(70,curY+44,680,10);
+        ctx.fillStyle=col;ctx.fillRect(70,curY+44,(val/totalCards)*680,10);
+        curY+=60;
+
+        // Plain text line helper — no background, black text, same font as label
+        const drawLine=(text)=>{
+            ctx.font='bold 13px Arial';ctx.textAlign='left';ctx.fillStyle='#111';
+            ctx.fillText(text, 86, curY+14);
+            curY+=22;
+        };
+
+        // Acierto Directo: every hit, grouped by consecutive
+        if(showAllHits && hitPositions && hitPositions.length){
+            const groups=[];
+            hitPositions.forEach((pos,i)=>{
+                if(i===0||pos!==hitPositions[i-1]+1)groups.push([pos]);
+                else groups[groups.length-1].push(pos);
+            });
+            groups.forEach(g=>{
+                const text=g.length===1
+                    ?`Carta ${g[0]+1}`
+                    :`Cartas ${g[0]+1} a ${g[g.length-1]+1}  (${g.length} seguidas)`;
+                drawLine(text);
+            });
+            curY+=4;
+        }
+
+        // Pre/Post: show total sum first (below bar), then streak lines
+        if(!showAllHits && streakList && streakList.length){
+            const totalConsec=streakList.reduce((acc,str)=>acc+str.len,0);
+            // Total — shown right after bar, in the same style as number/percentage
+            drawOutlineText(`${totalConsec} Coincidencias`,400,curY+14,col,'bold 16px Arial','center');
+            curY+=24;
+            streakList.forEach(str=>{
+                const sc=str.end-str.len+2, ec=str.end+1;
+                const text=`${streakLabel}: ${str.len} seguidas — cartas ${sc} a ${ec}`;
+                drawLine(text);
+            });
+            curY+=4;
+        }
+        curY+=10;
+        ctx.restore();
+    };
+
+    // Compute hit positions for direct hits (all positions)
+    const directHitPositions=logsArr.map((ans,i)=>ans===(deckArr[i]&&deckArr[i].id)?i:-1).filter(x=>x>=0);
+
+    // Streaks≥2 for pre/post (computed fresh — threshold 2 for display here)
+    const computeStreaks2=(logsA,deckA,key)=>{
+        const list=[];let run=0;
+        logsA.forEach((ans,i)=>{
+            const hit=key==='pre'?(i+1<logsA.length&&ans===(deckA[i+1]&&deckA[i+1].id))
+                                 :(i>0&&ans===(deckA[i-1]&&deckA[i-1].id));
+            if(hit)run++;
+            else{if(run>=2)list.push({end:i-1,len:run});run=0;}
+        });
+        if(run>=2)list.push({end:logsA.length-1,len:run});
+        return list;
+    };
+    const preStreaks2=computeStreaks2(logsArr,deckArr,'pre');
+    const postStreaks2=computeStreaks2(logsArr,deckArr,'post');
+
+    drawStatWithStreaks('ACIERTOS DIRECTOS',d,'#3fb950',null,'',true,directHitPositions);
+    drawStatWithStreaks('PRECOGNICIÓN',p,'#1f6feb',preStreaks2,'Racha Adelantada',false,null);
+    drawStatWithStreaks('POSTCOGNICIÓN',ps,'#f85149',postStreaks2,'Racha Atrasada',false,null);
+    curY+=12;
+
+    // 5. SEQUENCE — no legend, custom name headers larger, symbols+lines centered
+    let seqHeaderBottom=drawSectionHeader(ctx,'SECUENCIA DETALLADA DE LA SESIÓN',curY,'#e8f0fe','#1a56db');
+    curY=seqHeaderBottom+14;
+
+    // Column layout — wider center zone, icons and text centered in each column
+    // Left col center ~190, Right col center ~580, connection zone in middle
+    const COL={
+        num:58,
+        emCenter:190,  // center of left column
+        midL:310,midR:490,
+        recCenter:585  // center of right column
+    };
+    const ROW_H=56;
+
+    // Column headers — same font style as names in session box (bold 13px), dark color, larger
+    ctx.font='bold 14px Arial';ctx.fillStyle='#111';ctx.textAlign='center';
+    ctx.fillText((emisor||'EMISOR').toUpperCase(),COL.emCenter,curY+16);
+    ctx.fillText((receptor||'RECEPTOR').toUpperCase(),COL.recCenter,curY+16);
+    ctx.strokeStyle='#c8d8f0';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(50,curY+26);ctx.lineTo(750,curY+26);ctx.stroke();
+    curY+=30;
+
+    // Pass 1: row backgrounds
+    logsArr.forEach((_,i)=>{
+        if(i%2===0){ctx.fillStyle='#f4f6f9';ctx.fillRect(50,curY+(i*ROW_H),700,ROW_H);}
+    });
+
+    // Pass 2: diagonal lines
+    logsArr.forEach((ans,i)=>{
+        const rowTop=curY+(i*ROW_H);
+        const midY=rowTop+ROW_H/2;
+        const real=deckArr[i];
+        if(!real)return;
+        if(real.id===ans)
+            drawLink(ctx,COL.midL,midY,COL.midR,midY,'#3fb950',2.5);
+        if(i+1<logsArr.length&&ans===(deckArr[i+1]&&deckArr[i+1].id))
+            drawLink(ctx,COL.midR,midY,COL.midL,curY+((i+1)*ROW_H)+ROW_H/2,'#1f6feb',2);
+        if(i>0&&ans===(deckArr[i-1]&&deckArr[i-1].id))
+            drawLink(ctx,COL.midR,midY,COL.midL,curY+((i-1)*ROW_H)+ROW_H/2,'#f85149',2);
+    });
+
+    // Pass 3: icons and text — centered in each column
+    logsArr.forEach((ans,i)=>{
+        const rowTop=curY+(i*ROW_H);
+        const midY=rowTop+ROW_H/2;
+        const real=deckArr[i];
+        const user=SYMBOLS.find(x=>x.id===ans);
+        if(!real||!user)return;
+        // Row number
+        ctx.font='11px Arial';ctx.fillStyle='#aaa';ctx.textAlign='left';
+        ctx.fillText(String(i+1).padStart(2,'0'),COL.num,midY+4);
+        // Emisor: icon centered, name centered below icon
+        const realColor=real.renderColor||'#000000';
+        real.path(ctx,COL.emCenter-30,midY,22,realColor);
+        ctx.fillStyle='#222';ctx.font='bold 12px Arial';ctx.textAlign='left';
+        ctx.fillText(real.n.toUpperCase(),COL.emCenter-6,midY+4);
+        // Receptor: icon centered, name centered
+        const userColor=colorLevel===1?'#000000':user.c;
+        user.path(ctx,COL.recCenter-30,midY,22,userColor);
+        ctx.fillStyle='#222';ctx.font='bold 12px Arial';ctx.textAlign='left';
+        ctx.fillText(user.n.toUpperCase(),COL.recCenter-6,midY+4);
+    });
+    curY+=(logsArr.length*ROW_H)+20;
+
+    // 6. CLOSING NOTES — after sequence
+    if(finNotes){
+        const hb=drawSectionHeader(ctx,'NOTAS DE CIERRE SUBJETIVAS',curY,'#e8f0fe','#1a56db');
+        ctx.textAlign='left';ctx.font='italic 13px Arial';ctx.fillStyle='#555';
+        curY=wrapText(ctx,`"${finNotes}"`,70,hb+18,660,20)+25;
+    }
+
+    // 7. RHINE SCALE — red outline on active row preserved
+    drawSectionHeader(ctx,'INTERPRETACIÓN DE PROBABILIDAD (Rhine Scale)',curY,'#e8f0fe','#1a56db');
+    curY+=38;
+    const dPct=Math.round(hitRate*100);
+    const scaleItems=[
+        {label:'ANOMALÍA CRÍTICA (FENÓMENO ESP)',val:'> 50%',    desc:'Evidencia empírica de transferencia de información no local.',           bg:'#f0fff4'},
+        {label:'SENSIBILIDAD ESP (TENDENCIA)',   val:'30% – 45%',desc:'Desviación positiva significativa del promedio estadístico.',            bg:'#f0f7ff'},
+        {label:'ZONA DE AZAR (PROBABILIDAD BASE)',val:'20% (±3%)',desc:'Comportamiento mecánico esperado por azar puro.',                        bg:'#f8f8f8'},
+        {label:'PSI-MISSING (INHIBICIÓN)',        val:'< 10%',   desc:'Evitación sistemática del objetivo; sugiere interferencia inconsciente.',bg:'#fff5f5'}
+    ];
+    scaleItems.forEach((item,idx)=>{
+        const sy=curY+(idx*50);
+        const isActive=(idx===0&&dPct>50)||(idx===1&&dPct>=30&&dPct<=45)||(idx===2&&dPct>=17&&dPct<=23)||(idx===3&&dPct<10);
+        ctx.fillStyle=isActive?'#fff8dc':item.bg;ctx.fillRect(50,sy,700,48);
+        // Label col — left aligned, up to x=310
+        if(isActive){
+            ctx.strokeStyle='#cc4400';ctx.lineWidth=3;ctx.strokeRect(51,sy+1,698,46);
+            ctx.fillStyle='#cc4400';ctx.fillRect(50,sy,6,48);
+            ctx.font='bold 11px Arial';ctx.fillStyle='#cc4400';ctx.textAlign='left';
+            ctx.fillText('▶ '+item.label,66,sy+25);
+        } else {
+            ctx.font='bold 10px Arial';ctx.fillStyle='#1f6feb';ctx.textAlign='left';
+            ctx.fillText(item.label,66,sy+25);
+        }
+        // Val col — centered at x=340 (narrow fixed column)
+        ctx.font='bold 11px Arial';ctx.fillStyle=isActive?'#cc4400':'#111';
+        ctx.textAlign='center';ctx.fillText(item.val,345,sy+25);
+        // Desc col — left aligned from x=380, clipped to canvas right
+        ctx.font='10px Arial';ctx.fillStyle=isActive?'#993300':'#555';
+        ctx.textAlign='left';
+        // Wrap description if needed within 360px wide area
+        const descMaxW=360;
+        const descWords=item.desc.split(' ');
+        let descLine='';let descY=sy+17;
+        descWords.forEach((w,wi)=>{
+            const test=descLine+w+' ';
+            if(ctx.measureText(test).width>descMaxW&&wi>0){
+                ctx.fillText(descLine,382,descY);descLine=w+' ';descY+=13;
+            } else descLine=test;
+        });
+        ctx.fillText(descLine,382,descY);
+    });
+    curY+=scaleItems.length*50+20;
+
+    // 8. ANALYSIS — text changes dynamically based on hitRate, colorLevel, and temporal displacement
+    ctx.fillStyle='#f0f7ff';ctx.fillRect(50,curY,700,diagH);
+    ctx.strokeStyle='#c8e1ff';ctx.lineWidth=1;ctx.strokeRect(50,curY,700,diagH);
+    const hb=drawSectionHeader(ctx,'ANÁLISIS DE RESULTADOS Y CONCLUSIONES',curY,'#e8f0fe','#1a56db');
+    ctx.textAlign='left';let nextY=hb+22;
+    ctx.font='bold 13px Arial';ctx.fillStyle='#1a56db';ctx.fillText('1. EVALUACIÓN ESTADÍSTICA',85,nextY);
+    ctx.fillStyle='#444';ctx.font='13px Arial';nextY=wrapText(ctx,diag,85,nextY+20,630,20)+28;
+    ctx.font='bold 13px Arial';ctx.fillStyle='#1a56db';ctx.fillText('2. CONDICIONES TÉCNICAS',85,nextY);
+    ctx.fillStyle='#444';ctx.font='13px Arial';nextY=wrapText(ctx,cond,85,nextY+20,630,20)+28;
+    ctx.font='bold 13px Arial';ctx.fillStyle='#1a56db';ctx.fillText('3. DINÁMICA DE PERCEPCIÓN',85,nextY);
+    ctx.fillStyle='#444';ctx.font='13px Arial';wrapText(ctx,moveDiag,85,nextY+20,630,20);
+    curY+=diagH+10;
+
+    // 9. FOOTER
+    ctx.strokeStyle='#e1e4e8';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(50,curY);ctx.lineTo(750,curY);ctx.stroke();
+    ctx.fillStyle='#333';ctx.textAlign='center';ctx.font='bold 13px Arial';
+    ctx.fillText('INTG CITY LABS — PROTOCOLO ZENER',400,curY+22);
+    ctx.font='10px Arial';ctx.fillStyle='#888';
+    ctx.fillText("Inspirado en el estudio 'Extra-Sensory Perception After Sixty Years' (Duke University, 1940).",400,curY+42);
+    ctx.fillText('Este documento es de carácter experimental y educativo. Los resultados no constituyen un diagnóstico clínico.',400,curY+58);
+    ctx.font='bold 9px Arial';ctx.fillStyle='#bbb';
+    ctx.fillText(`ID-SESS: ${sessId||Date.now()} | VER: 3.3`,400,curY+78);
+    ctx.font='italic 8px Arial';ctx.fillStyle='rgba(180,180,180,0.45)';
+    ctx.textAlign='right';
+    ctx.fillText('Desarrollado por @ARSifuentes',780,curY+78);
+}
+
+// ── GENERATE LIVE CANVAS ───────────────────────────────────────────────────
+function generateCanvas(){
+    const cnv=document.getElementById('cnvReport');
+    const ctx=cnv.getContext('2d');
+    const emisor=document.getElementById('inEmisor').value||'Emisor';
+    const receptor=document.getElementById('inReceptor').value||'Receptor';
+    const obsNotes=document.getElementById('inObsNotes').value.trim();
+    const finNotes=document.getElementById('inFinalNotes').value.trim();
+    let d=0,p=0,ps=0;
+    logs.forEach((ans,i)=>{
+        if(ans===deck[i].id)d++;
+        if(i+1<totalCards&&ans===(deck[i+1]&&deck[i+1].id))p++;
+        if(i-1>=0&&ans===(deck[i-1]&&deck[i-1].id))ps++;
+    });
+    const now=new Date();
+    buildReport(ctx,cnv,{
+        emisor,receptor,obsNotes,finNotes,d,p,ps,totalCards,colorLevel,
+        dateStr:now.toLocaleDateString(),
+        timeStr:now.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),
+        sessId:null,seqNum:null,logsArr:logs,deckArr:deck,streaks:computeStreaks(logs,deck,totalCards)
+    });
+}
+
+// ── RENDER SAVED CANVAS ────────────────────────────────────────────────────
+function renderSavedCanvas(s){
+    const cnv=document.getElementById('cnvSessReport');
+    const ctx=cnv.getContext('2d');
+    const deckArr=(s.deckIds||[]).map(id=>{
+        const sym=SYMBOLS.find(x=>x.id===id);
+        return sym?{...sym,renderColor:'#000000'}:{id,n:id,c:'#000000',renderColor:'#000000',path:()=>{}};
+    });
+    buildReport(ctx,cnv,{
+        emisor:s.emisor,receptor:s.receptor,
+        obsNotes:s.obsNotes||'',finNotes:s.finNotes||'',
+        d:s.d,p:s.p,ps:s.ps,totalCards:s.totalCards,colorLevel:s.colorLevel||1,
+        dateStr:s.date,timeStr:s.time,sessId:s.id,
+        seqNum:s.seqNum||null,
+        logsArr:s.logsIds||[],deckArr,streaks:s.streaks||{dir:[],pre:[],post:[]}
+    });
+}
+
+// ── FIREBASE + AUTH + PARTY (loaded after app constants) ──────────────
+// ── FIREBASE CONFIG ────────────────────────────────────────────────────────
+const firebaseConfig={
+    apiKey:"AIzaSyDFxhaDlPoESZNpzxEbX1PHVbUL8mLYR7M",
+    authDomain:"zener-intg-city.firebaseapp.com",
+    projectId:"zener-intg-city",
+    storageBucket:"zener-intg-city.firebasestorage.app",
+    messagingSenderId:"268599177493",
+    appId:"1:268599177493:web:86f632c794e00beb2f391c",
+    databaseURL:"https://zener-intg-city-default-rtdb.firebaseio.com"
+};
+
+// Stubs so app works even if Firebase never loads (offline / blocked)
+let auth=null, db=null, rtdb=null, currentUser=null;
+
+function signInWithGoogle(){
+    if(!auth){showToast('Firebase no disponible — verifica tu conexión','#f85149');return;}
+    const provider=new firebase.auth.GoogleAuthProvider();
+    // Use redirect instead of popup — works on all browsers including Safari iOS
+    auth.signInWithRedirect(provider).catch(e=>showToast('Error al iniciar sesión: '+e.message,'#f85149'));
+}
+function signOutUser(){
+    if(!auth){return;}
+    showConfirm(
+        '¿Cerrar sesión?',
+        'Tu historial local seguirá disponible en este dispositivo.',
+        function(){
+            auth.signOut().then(()=>showToast('Sesión cerrada'));
+        }
+    );
+}
+// showPartyLobby is defined in the Party section below
+
+// Safe Firebase initializer — retries up to 20 times (10 seconds total)
+function initFirebase(retries){
+    retries=retries||0;
+    if(typeof firebase==='undefined'){
+        if(retries<20){
+            setTimeout(function(){initFirebase(retries+1);},500);
+        } else {
+            console.warn('Firebase SDK no cargó — modo offline activo');
+            const lo=document.getElementById('authLoggedOut');
+            if(lo) lo.innerHTML='<div style="font-size:0.7rem;color:var(--gray);">Sin conexión — historial local activo</div>';
+            const dbg=document.getElementById('authDebug');
+            if(dbg){dbg.textContent='Firebase no cargó — verifica tu conexión';dbg.style.display='block';}
+        }
+        return;
+    }
+    // Prevent double initialization
+    if(firebase.apps&&firebase.apps.length>0){
+        auth=firebase.auth();
+        db=firebase.firestore();
+        rtdb=firebase.database();
+        setupAuthListener();
+        return;
+    }
+    try{
+        firebase.initializeApp(firebaseConfig);
+        auth=firebase.auth();
+        db=firebase.firestore();
+        rtdb=firebase.database();
+        setupAuthListener();
+        console.log('Firebase inicializado correctamente ✓');
+        // Update debug status in auth bar
+        const dbg=document.getElementById('authDebug');
+        if(dbg) dbg.style.display='none';
+    }catch(e){
+        console.warn('Error Firebase:',e.message);
+        const dbg=document.getElementById('authDebug');
+        if(dbg) dbg.textContent='Error Firebase: '+e.message;
+    }
+}
+
+function setupAuthListener(){
+    // onAuthStateChanged fires on every page load with current auth state
+    auth.onAuthStateChanged(function(user){
+        currentUser=user;
+        updateAuthUI(user);
+        if(user){
+            migrateLocalToCloud();
+            updateAutoHistoryBtn();
+        }
+    });
+
+    // getRedirectResult handles the case when returning from Google sign-in
+    // It must update UI manually since onAuthStateChanged may have already fired with null
+    auth.getRedirectResult().then(function(result){
+        if(result&&result.user){
+            currentUser=result.user;
+            updateAuthUI(result.user);
+            migrateLocalToCloud();
+            updateAutoHistoryBtn();
+            showToast('Bienvenido, '+(result.user.displayName||result.user.email)+'!');
+        }
+    }).catch(function(e){
+        if(e.code&&e.code!=='auth/no-auth-event'&&e.code!=='auth/null-user'){
+            showToast('Error al iniciar sesión: '+e.message,'#f85149');
+            console.warn('getRedirectResult error:',e.code,e.message);
+        }
+    });
+}
+
+function updateAuthUI(user){
+    const lo=document.getElementById('authLoggedOut');
+    const li=document.getElementById('authLoggedIn');
+    if(!lo||!li) return;
+    if(user){
+        lo.style.display='none';
+        li.style.display='block';
+        li.removeAttribute('hidden');
+        const nameEl=document.getElementById('authName');
+        if(nameEl) nameEl.textContent=user.displayName||user.email||'Usuario';
+        const av=document.getElementById('authAvatar');
+        if(av&&user.photoURL){av.src=user.photoURL;av.style.display='block';}
+    } else {
+        lo.style.display='block';
+        li.style.display='none';
+    }
+}
+// ── CLOUD HISTORY ──────────────────────────────────────────────────────────
+async function getCloudHistory(isAuto){
+    if(!currentUser||!db) return null;
+    try{
+        const col=isAuto?'history_auto':'history';
+        const snap=await db.collection('users').doc(currentUser.uid).collection(col)
+            .orderBy('id','asc').get();
+        return snap.docs.map(d=>d.data());
+    }catch(e){ return null; }
+}
+
+async function saveSessionToCloud(sessionData, isAuto){
+    if(!currentUser||!db) return;
+    try{
+        const col=isAuto?'history_auto':'history';
+        await db.collection('users').doc(currentUser.uid)
+            .collection(col).doc(String(sessionData.id)).set(sessionData);
+    }catch(e){ console.warn('Error al guardar en la nube:',e.message); }
+}
+
+async function migrateLocalToCloud(){
+    if(!currentUser) return;
+    // Check if cloud already has data
+    const cloudH=await getCloudHistory(false);
+    if(cloudH&&cloudH.length>0) return; // Already has cloud data, skip migration
+    const localH=getHistory();
+    const localA=getAutoHistory();
+    if(localH.length===0&&localA.length===0) return;
+    showToast('Migrando historial local a la nube...','#58a6ff');
+    const batch1=localH.map(s=>saveSessionToCloud(s,false));
+    const batch2=localA.map(s=>saveSessionToCloud(s,true));
+    await Promise.all([...batch1,...batch2]);
+    showToast('Historial sincronizado ✓');
+}
+
+// ── SMART HISTORY — uses cloud if logged in, local otherwise ───────────────
+async function getSmartHistory(isAuto){
+    if(currentUser){
+        const cloud=await getCloudHistory(isAuto);
+        if(cloud!==null) return cloud;
+    }
+    return isAuto?getAutoHistory():getHistory();
+}
+
+async function saveSmartSession(sessionData, isAuto){
+    // Always save locally
+    const h=isAuto?getAutoHistory():getHistory();
+    h.push(sessionData);
+    if(isAuto) saveAutoHistory(h); else saveHistory(h);
+    // Also save to cloud if logged in
+    await saveSessionToCloud(sessionData, isAuto);
+}
+
+// ── PARTY STATE ────────────────────────────────────────────────────────────
+let partyRole=null; // 'host' | 'guest'
+let partyRoomId=null;
+let partyDeck=[];
+let partyLogs=[];
+let partyStep=0;
+let partyListeners=[];
+
+function genRoomCode(){
+    const chars='ABCDEFGHJKLMNPQRSTUVWXYZ';
+    let code='';
+    for(let i=0;i<4;i++) code+=chars[Math.floor(Math.random()*chars.length)];
+    return code;
+}
+
+function sharePartyLink(){
+    if(!partyRoomId) return;
+    const url=window.location.href.split('?')[0]+'?party='+partyRoomId;
+    const text='Únete a mi sesión Zener Party 🎮\nCódigo: '+partyRoomId+'\nEnlace: '+url;
+    if(navigator.share){
+        navigator.share({title:'Zener Party — Código '+partyRoomId, text:text, url:url})
+            .catch(()=>{});
+    } else {
+        // Fallback: copy to clipboard
+        navigator.clipboard.writeText(text).then(()=>{
+            showToast('Enlace copiado al portapapeles ✓');
+        }).catch(()=>{
+            // Final fallback: show in toast
+            showToast('Código: '+partyRoomId+' | '+url,'#58a6ff');
+        });
+    }
+}
+
+function showPartyLobby(){
+    if(!currentUser){
+        showToast('Inicia sesión con Google para usar el Modo Party','#f85149');
+        return;
+    }
+    hideAll();
+    document.getElementById('scr-party-lobby').classList.remove('hidden');
+}
+
+function cancelParty(){
+    // Clean up listeners and room
+    partyListeners.forEach(fn=>fn());
+    partyListeners=[];
+    if(partyRoomId&&partyRole==='host'){
+        rtdb.ref('party/'+partyRoomId).remove();
+    } else if(partyRoomId&&partyRole==='guest'&&currentUser){
+        rtdb.ref('party/'+partyRoomId+'/members/'+currentUser.uid).remove();
+    }
+    partyRoomId=null; partyRole=null; partyDeck=[]; partyLogs=[]; partyStep=0;
+    hideAll();
+    document.getElementById('scr-setup').classList.remove('hidden');
+}
+
+async function createPartyRoom(){
+    if(!currentUser){ showToast('Inicia sesión para crear una sala','#f85149'); return; }
+    if(!rtdb){ showToast('Firebase no disponible','#f85149'); return; }
+    const code=genRoomCode();
+    partyRoomId=code;
+    partyRole='host';
+    const totalCards=parseInt(document.getElementById('partyTotalCards')?document.getElementById('partyTotalCards').value||'25':'25');
+    const colorLevel=parseInt(document.getElementById('partyColorLevel')?document.getElementById('partyColorLevel').value||'1':'1');
+
+    await rtdb.ref('party/'+code).set({
+        host:currentUser.uid,
+        hostName:currentUser.displayName||'Emisor',
+        status:'waiting',
+        totalCards,
+        colorLevel,
+        currentCard:0,
+        deck:[],
+        members:{}
+    });
+
+    // Set expiry — auto-delete after 2 hours
+    setTimeout(()=>{ if(partyRoomId===code) rtdb.ref('party/'+code).remove(); }, 7200000);
+
+    hideAll();
+    document.getElementById('scr-party-host').classList.remove('hidden');
+    document.getElementById('partyRoomCodeDisplay').textContent='Código: '+code;
+    document.getElementById('partyCodeBig').textContent=code;
+
+    // Listen for members joining
+    const membersRef=rtdb.ref('party/'+code+'/members');
+    const offMembers=membersRef.on('value',snap=>{
+        const members=snap.val()||{};
+        const list=Object.values(members);
+        const el=document.getElementById('partyMembersList');
+        if(el) el.innerHTML=list.length===0
+            ?'<span style="color:var(--gray);">Esperando conexiones...</span>'
+            :list.map(m=>`<div style="padding:4px 0;color:var(--white);">● ${m.name}</div>`).join('');
+    });
+    partyListeners.push(()=>membersRef.off('value',offMembers));
+}
+
+async function joinPartyRoom(){
+    if(!currentUser){ showToast('Inicia sesión para unirte a una sala','#f85149'); return; }
+    if(!rtdb){ showToast('Firebase no disponible','#f85149'); return; }
+    const code=(document.getElementById('partyCodeInput').value||'').trim().toUpperCase();
+    if(code.length!==4){ showToast('El código debe ser de 4 letras','#f85149'); return; }
+
+    const snap=await rtdb.ref('party/'+code).once('value');
+    if(!snap.exists()){ showToast('Sala no encontrada — verifica el código','#f85149'); return; }
+
+    partyRoomId=code;
+    partyRole='guest';
+
+    // Register as member
+    await rtdb.ref('party/'+code+'/members/'+currentUser.uid).set({
+        name:currentUser.displayName||'Receptor',
+        uid:currentUser.uid,
+        answers:{}
+    });
+
+    hideAll();
+    document.getElementById('scr-party-guest').classList.remove('hidden');
+    document.getElementById('partyGuestRoomCode').textContent='Sala: '+code;
+    document.getElementById('partyGuestName').textContent=currentUser.displayName||'';
+
+    // Listen for session start
+    const statusRef=rtdb.ref('party/'+code+'/status');
+    const offStatus=statusRef.on('value',snap=>{
+        if(snap.val()==='active'){
+            rtdb.ref('party/'+code).once('value').then(roomSnap=>{
+                const room=roomSnap.val();
+                partyDeck=room.deck||[];
+                partyLogs=[];
+                partyStep=room.currentCard||0;
+                startPartyGuestSession(room);
+            });
+        }
+        if(snap.val()==='ended') endPartyGuestSession();
+    });
+    partyListeners.push(()=>statusRef.off('value',offStatus));
+
+    // Listen for members list
+    const membersRef=rtdb.ref('party/'+code+'/members');
+    const offM=membersRef.on('value',snap=>{
+        const members=snap.val()||{};
+        const list=Object.values(members);
+        const el=document.getElementById('partyGuestMembersList');
+        if(el) el.innerHTML=list.map(m=>`<div style="padding:4px 0;color:var(--white);">● ${m.name}</div>`).join('');
+    });
+    partyListeners.push(()=>membersRef.off('value',offM));
+}
+
+async function startPartySession(){
+    if(!partyRoomId) return;
+    const totalCards=parseInt(document.getElementById('partyTotalCards').value);
+    const colorLevel=parseInt(document.getElementById('partyColorLevel').value);
+
+    // Build deck
+    partyDeck=[];
+    for(let i=0;i<totalCards/5;i++){
+        SYMBOLS.forEach(s=>{
+            let c='#000000';
+            if(colorLevel===2) c=s.c;
+            if(colorLevel===3) c=COLORS[Math.floor(Math.random()*COLORS.length)];
+            partyDeck.push({id:s.id,renderColor:c});
+        });
+    }
+    fisherYates(partyDeck);
+    partyStep=0;
+
+    // Push deck and start session
+    await rtdb.ref('party/'+partyRoomId).update({
+        status:'active',
+        totalCards,
+        colorLevel,
+        currentCard:0,
+        deck:partyDeck
+    });
+
+    showPartyHostSession();
+}
+
+function showPartyHostSession(){
+    hideAll();
+    document.getElementById('scr-party-host-session').classList.remove('hidden');
+    drawPartyHostCard();
+
+    // Listen for live responses
+    const answersRef=rtdb.ref('party/'+partyRoomId+'/members');
+    const offA=answersRef.on('value',snap=>{
+        const members=snap.val()||{};
+        const el=document.getElementById('partyLiveResponses');
+        if(!el) return;
+        const lines=Object.values(members).map(m=>{
+            const ans=m.answers&&m.answers[partyStep];
+            const sym=ans?SYMBOLS.find(s=>s.id===ans):null;
+            const ansLabel=sym?sym.n:(ans||'...');
+            return `<div style="padding:3px 0;"><span style="color:var(--white);font-weight:bold;">${m.name}</span> <span style="color:var(--gray);">→</span> <span style="color:#58a6ff;">${ansLabel}</span></div>`;
+        });
+        el.innerHTML=lines.join('')||'Esperando respuestas...';
+    });
+    partyListeners.push(()=>answersRef.off('value',offA));
+}
+
+function drawPartyHostCard(){
+    const card=partyDeck[partyStep];
+    if(!card) return;
+    document.getElementById('partyHostStep').textContent=`CARTA ${String(partyStep+1).padStart(2,'0')} / ${partyDeck.length}`;
+    const slot=document.getElementById('partyHostCard');
+    slot.innerHTML=`<svg viewBox="0 0 100 100" stroke="${card.renderColor}">${SVGS[card.id]}</svg>`;
+    const nextBtn=document.getElementById('partyNextBtn');
+    if(nextBtn) nextBtn.textContent=partyStep>=partyDeck.length-1?'Terminar Sesión':'Siguiente Carta →';
+}
+
+async function partyNextCard(){
+    if(partyStep>=partyDeck.length-1){ partyEndSession(); return; }
+    partyStep++;
+    await rtdb.ref('party/'+partyRoomId).update({currentCard:partyStep});
+    drawPartyHostCard();
+}
+
+async function partyEndSession(){
+    await rtdb.ref('party/'+partyRoomId).update({status:'ended'});
+    partyListeners.forEach(fn=>fn());
+    partyListeners=[];
+    showToast('Sesión Party terminada');
+    hideAll();
+    document.getElementById('scr-setup').classList.remove('hidden');
+}
+
+function startPartyGuestSession(room){
+    partyDeck=room.deck||[];
+    partyLogs=[];
+
+    const grid=document.getElementById('partyOptionsGrid');
+    if(!grid) return;
+    grid.innerHTML='';
+    SYMBOLS.forEach(s=>{
+        const btn=document.createElement('div');
+        btn.className='opt-btn';
+        const dc=room.colorLevel===1?'#000000':s.c;
+        const isWav=s.id==='wav';
+        const shadowOpacity=isWav&&dc!=='#000000'?0.22:0.65;
+        btn.innerHTML=`<svg viewBox="0 0 100 100" stroke="${dc}" style="filter:drop-shadow(0 0 2px rgba(255,255,255,${shadowOpacity}))">${SVGS[s.id]}</svg><span>${s.n}</span>`;
+        btn.onclick=()=>recordPartyAnswer(s.id);
+        grid.appendChild(btn);
+    });
+
+    hideAll();
+    document.getElementById('scr-party-session').classList.remove('hidden');
+    updatePartyGuestStep(room.currentCard||0);
+
+    // Listen for card changes
+    const cardRef=rtdb.ref('party/'+partyRoomId+'/currentCard');
+    const offCard=cardRef.on('value',snap=>{
+        const cardIdx=snap.val()||0;
+        updatePartyGuestStep(cardIdx);
+    });
+    partyListeners.push(()=>cardRef.off('value',offCard));
+}
+
+function updatePartyGuestStep(cardIdx){
+    partyStep=cardIdx;
+    const total=partyDeck.length;
+    document.getElementById('partyStep').textContent=`CARTA ${String(cardIdx+1).padStart(2,'0')} / ${total}`;
+    updatePartyStats();
+}
+
+async function recordPartyAnswer(symbolId){
+    partyLogs[partyStep]=symbolId;
+    await rtdb.ref('party/'+partyRoomId+'/members/'+currentUser.uid+'/answers/'+partyStep).set(symbolId);
+    updatePartyStats();
+    showToast('Respuesta registrada ✓');
+}
+
+function updatePartyStats(){
+    let d=0,p=0,ps=0;
+    partyLogs.forEach((ans,i)=>{
+        if(!ans||!partyDeck[i]) return;
+        if(ans===partyDeck[i].id) d++;
+        if(i+1<partyDeck.length&&partyDeck[i+1]&&ans===partyDeck[i+1].id) p++;
+        if(i>0&&partyDeck[i-1]&&ans===partyDeck[i-1].id) ps++;
+    });
+    const dEl=document.getElementById('partyVDir');
+    const pEl=document.getElementById('partyVPre');
+    const psEl=document.getElementById('partyVPos');
+    if(dEl) dEl.textContent=d;
+    if(pEl) pEl.textContent=p;
+    if(psEl) psEl.textContent=ps;
+}
+
+function endPartyGuestSession(){
+    partyListeners.forEach(fn=>fn());
+    partyListeners=[];
+    showToast('La sesión Party ha terminado');
+    hideAll();
+    document.getElementById('scr-setup').classList.remove('hidden');
+}
+
+// ── START FIREBASE ─────────────────────────────────────────────────────────
+// Wait for DOM ready then initialize Firebase
+if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',function(){
+        initFirebase(0);
+        checkPartyURLParam();
+    });
+}else{
+    initFirebase(0);
+    checkPartyURLParam();
+}
+
+function checkPartyURLParam(){
+    const params=new URLSearchParams(window.location.search);
+    const code=params.get('party');
+    if(code&&code.length===4){
+        // Pre-fill the code and go to lobby
+        setTimeout(function(){
+            const input=document.getElementById('partyCodeInput');
+            if(input) input.value=code.toUpperCase();
+            // Scroll to lobby section if party lobby is shown
+            showToast('Código de sala detectado: '+code.toUpperCase(),'#58a6ff');
+        }, 1000);
+    }
+}</script>
+
+</div><!-- /#app -->
+</body>
+</html>
