@@ -86,12 +86,13 @@
     <div class="subtitle">INTG City</div>
 
     <!-- Mode selector 2x2 -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:18px;">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
         <button class="mode-btn active" id="modeNormal"    onclick="setMode('normal',this)">Parejas</button>
         <button class="mode-btn"        id="modeAuto"      onclick="setMode('auto',this)">Auto Test</button>
         <button class="mode-btn"        id="modeGuest"     onclick="setMode('guest',this)">Pareja Invitada</button>
         <button class="mode-btn"        id="modeAutoGuest" onclick="setMode('auto-guest',this)">Auto Test Invitado</button>
     </div>
+    <button onclick="showPartyLobby()" style="width:100%;margin-bottom:18px;padding:10px;background:rgba(31,111,235,0.1);border:1px solid rgba(31,111,235,0.4);color:#58a6ff;border-radius:8px;cursor:pointer;font-size:0.72rem;font-weight:bold;text-transform:uppercase;letter-spacing:0.5px;-webkit-appearance:none;appearance:none;">🎮 Modo Party</button>
 
     <!-- Mode description badge -->
     <div id="modeBadge" style="font-size:0.72rem;color:var(--gray);text-align:center;margin:-8px 0 14px;letter-spacing:0.5px;min-height:16px;"></div>
@@ -129,7 +130,6 @@
     <button class="btn-primary" onclick="startSession()">Iniciar Protocolo</button>
     <button class="btn-outline" onclick="showHistory()">Ver Historial de Sesiones</button>
     <button class="btn-outline" id="btnAutoHistory" onclick="showAutoHistory()" style="display:none;">Ver Historial Auto Test</button>
-    <button class="btn-outline" onclick="showPartyLobby()" style="margin-top:10px;border-color:rgba(31,111,235,0.5);color:#58a6ff;">🎮 Modo Party</button>
 
     <!-- Auth bar -->
     <div id="authBar" style="margin-top:20px;background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:12px;padding:14px 16px;">
@@ -582,7 +582,8 @@
     <div style="background:rgba(0,0,0,0.4);border:2px solid var(--accent);border-radius:16px;padding:24px;text-align:center;margin-bottom:20px;">
         <div style="font-size:0.65rem;color:var(--gray);text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;">Comparte este código</div>
         <div id="partyCodeBig" style="font-size:3rem;font-weight:bold;color:#58a6ff;letter-spacing:16px;font-family:monospace;">----</div>
-        <div style="font-size:0.7rem;color:var(--gray);margin-top:8px;">Los receptores ingresan este código desde sus dispositivos</div>
+        <div style="font-size:0.7rem;color:var(--gray);margin-top:8px;margin-bottom:16px;">Los receptores ingresan este código desde sus dispositivos</div>
+        <button onclick="sharePartyLink()" style="background:rgba(31,111,235,0.2);border:1px solid rgba(31,111,235,0.5);color:#58a6ff;padding:10px 20px;border-radius:10px;cursor:pointer;font-size:0.78rem;font-weight:bold;width:100%;-webkit-appearance:none;appearance:none;">🔗 Compartir enlace de la sala</button>
     </div>
 
     <div style="background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:16px;">
@@ -728,6 +729,28 @@ function showToast(msg,color='#3fb950'){
     const t=document.getElementById('toast');
     t.textContent=msg;t.style.background=color;t.style.color=color==='#3fb950'?'#000':'#fff';
     t.style.opacity='1';setTimeout(()=>t.style.opacity='0',2400);
+}
+
+function showConfirm(title, message, onConfirm){
+    // Remove any existing modal
+    const old=document.getElementById('confirmModal');
+    if(old) old.remove();
+    const modal=document.createElement('div');
+    modal.id='confirmModal';
+    modal.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+    modal.innerHTML=`
+        <div style="background:#161b22;border:1px solid #30363d;border-radius:16px;padding:28px 24px;max-width:340px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.6);">
+            <div style="font-size:1rem;font-weight:bold;color:#f0f6fc;margin-bottom:10px;">${title}</div>
+            <div style="font-size:0.8rem;color:#8b949e;line-height:1.6;margin-bottom:24px;">${message}</div>
+            <div style="display:flex;gap:10px;">
+                <button id="confirmNo"  style="flex:1;padding:12px;border-radius:10px;border:1px solid #30363d;background:transparent;color:#8b949e;font-weight:bold;cursor:pointer;font-size:0.8rem;-webkit-appearance:none;">Cancelar</button>
+                <button id="confirmYes" style="flex:1;padding:12px;border-radius:10px;border:none;background:#f85149;color:#fff;font-weight:bold;cursor:pointer;font-size:0.8rem;-webkit-appearance:none;">Confirmar</button>
+            </div>
+        </div>`;
+    document.body.appendChild(modal);
+    document.getElementById('confirmNo').onclick=()=>modal.remove();
+    document.getElementById('confirmYes').onclick=()=>{ modal.remove(); onConfirm(); };
+    modal.onclick=(e)=>{ if(e.target===modal) modal.remove(); };
 }
 
 // ── DOWNLOAD (Safari iOS compatible) ──────────────────────────────────────
@@ -2002,16 +2025,20 @@ let auth=null, db=null, rtdb=null, currentUser=null;
 function signInWithGoogle(){
     if(!auth){showToast('Firebase no disponible — verifica tu conexión','#f85149');return;}
     const provider=new firebase.auth.GoogleAuthProvider();
-    auth.signInWithPopup(provider).catch(e=>showToast('Error al iniciar sesión: '+e.message,'#f85149'));
+    // Use redirect instead of popup — works on all browsers including Safari iOS
+    auth.signInWithRedirect(provider).catch(e=>showToast('Error al iniciar sesión: '+e.message,'#f85149'));
 }
 function signOutUser(){
     if(!auth){return;}
-    auth.signOut().then(()=>showToast('Sesión cerrada'));
+    showConfirm(
+        '¿Cerrar sesión?',
+        'Tu historial local seguirá disponible en este dispositivo.',
+        function(){
+            auth.signOut().then(()=>showToast('Sesión cerrada'));
+        }
+    );
 }
-function showPartyLobby(){
-    if(!currentUser){showToast('Inicia sesión con Google para usar el Modo Party','#f85149');return;}
-    hideAll();document.getElementById('scr-party-lobby').classList.remove('hidden');
-}
+// showPartyLobby is defined in the Party section below
 
 // Safe Firebase initializer — retries up to 20 times (10 seconds total)
 function initFirebase(retries){
@@ -2032,6 +2059,17 @@ function initFirebase(retries){
         auth=firebase.auth();
         db=firebase.firestore();
         rtdb=firebase.database();
+
+        // Handle redirect result (called when Google redirects back after login)
+        auth.getRedirectResult().then(function(result){
+            if(result&&result.user){
+                showToast('Sesión iniciada — '+result.user.displayName);
+            }
+        }).catch(function(e){
+            if(e.code!=='auth/no-auth-event'){
+                showToast('Error al iniciar sesión: '+e.message,'#f85149');
+            }
+        });
 
         auth.onAuthStateChanged(async function(user){
             currentUser=user;
@@ -2122,6 +2160,24 @@ function genRoomCode(){
     let code='';
     for(let i=0;i<4;i++) code+=chars[Math.floor(Math.random()*chars.length)];
     return code;
+}
+
+function sharePartyLink(){
+    if(!partyRoomId) return;
+    const url=window.location.href.split('?')[0]+'?party='+partyRoomId;
+    const text='Únete a mi sesión Zener Party 🎮\nCódigo: '+partyRoomId+'\nEnlace: '+url;
+    if(navigator.share){
+        navigator.share({title:'Zener Party — Código '+partyRoomId, text:text, url:url})
+            .catch(()=>{});
+    } else {
+        // Fallback: copy to clipboard
+        navigator.clipboard.writeText(text).then(()=>{
+            showToast('Enlace copiado al portapapeles ✓');
+        }).catch(()=>{
+            // Final fallback: show in toast
+            showToast('Código: '+partyRoomId+' | '+url,'#58a6ff');
+        });
+    }
 }
 
 function showPartyLobby(){
@@ -2389,9 +2445,27 @@ function endPartyGuestSession(){
 // ── START FIREBASE ─────────────────────────────────────────────────────────
 // Wait for DOM ready then initialize Firebase
 if(document.readyState==='loading'){
-    document.addEventListener('DOMContentLoaded',function(){initFirebase(0);});
+    document.addEventListener('DOMContentLoaded',function(){
+        initFirebase(0);
+        checkPartyURLParam();
+    });
 }else{
     initFirebase(0);
+    checkPartyURLParam();
+}
+
+function checkPartyURLParam(){
+    const params=new URLSearchParams(window.location.search);
+    const code=params.get('party');
+    if(code&&code.length===4){
+        // Pre-fill the code and go to lobby
+        setTimeout(function(){
+            const input=document.getElementById('partyCodeInput');
+            if(input) input.value=code.toUpperCase();
+            // Scroll to lobby section if party lobby is shown
+            showToast('Código de sala detectado: '+code.toUpperCase(),'#58a6ff');
+        }, 1000);
+    }
 }</script>
 
 </div><!-- /#app -->
