@@ -85,21 +85,17 @@
     <h1>Zener Test</h1>
     <div class="subtitle">INTG City</div>
 
-    <!-- Mode selector 2x2 -->
+    <!-- Mode selector 1x2 -->
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
-        <button class="mode-btn active" id="modeNormal"    onclick="setMode('normal',this)">Parejas</button>
-        <button class="mode-btn"        id="modeAuto"      onclick="setMode('auto',this)">Auto Test</button>
-        <button class="mode-btn"        id="modeGuest"     onclick="setMode('guest',this)">Pareja Invitada</button>
-        <button class="mode-btn"        id="modeAutoGuest" onclick="setMode('auto-guest',this)">Auto Test Invitado</button>
+        <button class="mode-btn active" id="modeAuto"  onclick="setMode('auto',this)">Auto Test</button>
+        <button class="mode-btn"        id="modeSync"  onclick="showINTGSync()">INTG Sync</button>
     </div>
-    <button onclick="showPartyLobby()" style="width:100%;margin-bottom:18px;padding:10px;background:rgba(31,111,235,0.1);border:1px solid rgba(31,111,235,0.4);color:#58a6ff;border-radius:8px;cursor:pointer;font-size:0.72rem;font-weight:bold;text-transform:uppercase;letter-spacing:0.5px;-webkit-appearance:none;appearance:none;">🎮 Modo Party</button>
 
     <!-- Mode description badge -->
-    <div id="modeBadge" style="font-size:0.72rem;color:var(--gray);text-align:center;margin:-8px 0 14px;letter-spacing:0.5px;min-height:16px;"></div>
+    <div id="modeBadge" style="font-size:0.72rem;color:var(--gray);text-align:center;margin:4px 0 14px;letter-spacing:0.5px;min-height:16px;">Test individual — carta oculta, sin Emisor.</div>
 
     <div class="config-card" id="configFields">
-        <div class="input-group" id="fieldReceptor"><label>¿Quién visualizará las cartas? (Receptor)</label><input type="text" id="inReceptor" value="" placeholder="Nombre de quien recibe telepatía"></div>
-        <div class="input-group" id="fieldEmisor"><label>¿Quién envía telepatía y registra respuestas? (Emisor)</label><input type="text" id="inEmisor" value="" placeholder="Nombre de quien envía Telepatía y registra respuestas"></div>
+        <div class="input-group" id="fieldReceptor"><label>Tu nombre (Receptor)</label><input type="text" id="inReceptor" value="" placeholder="Nombre de quien recibe telepatía"></div>
         <div class="input-group">
             <label>Longitud de la Sesión</label>
             <select id="inTotalCards">
@@ -119,15 +115,12 @@
         </div>
     </div>
     <div class="config-card" style="display:flex;flex-direction:column;gap:10px;">
-        <label style="display:flex;align-items:center;gap:12px;cursor:pointer;font-size:0.9rem;" id="blindLabel">
-            <input type="checkbox" id="inBlind" style="transform:scale(1.3);"> MODO CIEGO (Oculta la carta que sale en pantalla)
-        </label>
-        <div class="input-group" style="margin-top:15px;">
+        <div class="input-group" style="margin-top:0;">
             <label>Notas Previas del Observador</label>
             <textarea id="inObsNotes" placeholder="Condiciones ambientales, estado emocional de la persona..."></textarea>
         </div>
     </div>
-    <button class="btn-primary" onclick="startSession()">Iniciar Protocolo</button>
+    <button class="btn-primary" onclick="startSession()">Iniciar Auto Test</button>
     <button class="btn-outline" onclick="showHistory()">Ver Historial de Sesiones</button>
     <button class="btn-outline" id="btnAutoHistory" onclick="showAutoHistory()" style="display:none;">Ver Historial Auto Test</button>
 
@@ -668,6 +661,224 @@
     <button onclick="partyEndSession()" class="btn-outline" style="margin-top:10px;color:var(--danger);border-color:var(--danger);">Terminar Sesión</button>
 </div>
 
+<!-- PANTALLA 13: INTG SYNC — SELECTOR DE SUB-MODO -->
+<div class="container hidden" id="scr-sync">
+    <h1>INTG Sync</h1>
+    <div class="subtitle">Sesión Sincronizada</div>
+
+    <!-- Local -->
+    <div class="config-card" style="margin-bottom:14px;">
+        <div style="font-size:0.65rem;font-weight:bold;color:#58a6ff;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;">📱 Local — Mismo Dispositivo</div>
+        <p style="font-size:0.78rem;color:var(--gray);line-height:1.6;margin:0 0 12px;">El Emisor opera el dispositivo y registra las respuestas de todos los participantes.</p>
+        <button onclick="showSyncLocal()" class="btn-primary">Iniciar Local</button>
+    </div>
+
+    <!-- Online -->
+    <div class="config-card" style="margin-bottom:14px;">
+        <div style="font-size:0.65rem;font-weight:bold;color:#3fb950;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;">🌐 En Línea — Multidispositivo</div>
+        <p style="font-size:0.78rem;color:var(--gray);line-height:1.6;margin:0 0 12px;">Cada participante responde desde su propio dispositivo. El Emisor comparte el enlace de sala.</p>
+        <div style="display:flex;gap:10px;margin-bottom:10px;">
+            <button onclick="createSyncRoom()" class="btn-primary" style="flex:1;">Crear Sala</button>
+        </div>
+        <div style="display:flex;gap:10px;">
+            <input type="text" id="syncCodeInput" maxlength="4" placeholder="ABCD" style="text-transform:uppercase;text-align:center;font-size:1.2rem;font-weight:bold;letter-spacing:6px;flex:1;padding:12px;background:#010409;border:1px solid var(--border);color:var(--white);border-radius:10px;"/>
+            <button onclick="joinSyncRoom()" style="background:#3fb950;border:none;color:#000;padding:12px 18px;border-radius:10px;font-weight:bold;cursor:pointer;-webkit-appearance:none;appearance:none;">Unirse</button>
+        </div>
+    </div>
+
+    <button class="btn-outline" onclick="showSetup()" style="border-color:#1f6feb;color:#58a6ff;">⌂ Volver al Inicio</button>
+</div>
+
+<!-- PANTALLA 14: INTG SYNC LOCAL — CONFIGURACIÓN -->
+<div class="container hidden" id="scr-sync-local-config">
+    <h1>INTG Sync Local</h1>
+    <div class="subtitle">Configuración de Participantes</div>
+
+    <div class="config-card">
+        <!-- Emisor -->
+        <div class="input-group">
+            <label>Nombre del Emisor (operador del dispositivo)</label>
+            <input type="text" id="syncEmisor" placeholder="Nombre del Emisor" value=""/>
+        </div>
+        <!-- Receptores dinámicos -->
+        <div id="syncParticipants">
+            <div class="input-group" style="display:flex;gap:8px;align-items:center;">
+                <input type="text" class="sync-participant-input" placeholder="Participante 1" style="flex:1;"/>
+            </div>
+        </div>
+        <button onclick="addSyncParticipant()" style="background:transparent;border:1px dashed var(--border);color:var(--gray);padding:10px;border-radius:8px;width:100%;cursor:pointer;margin-top:8px;font-size:0.8rem;-webkit-appearance:none;appearance:none;">+ Agregar participante</button>
+    </div>
+
+    <div class="config-card">
+        <div class="input-group">
+            <label>Longitud de la Sesión</label>
+            <select id="syncTotalCards">
+                <option value="25">25 Cartas (Estándar Rhine)</option>
+                <option value="50">50 Cartas (Extendido)</option>
+                <option value="75">75 Cartas (Alta precisión)</option>
+                <option value="100">100 Cartas (Protocolo Maestro)</option>
+            </select>
+        </div>
+        <div class="input-group">
+            <label>Nivel de Visualización</label>
+            <select id="syncColorLevel">
+                <option value="1">Nivel 1: Color Negro</option>
+                <option value="2">Nivel 2: Color Estándar</option>
+                <option value="3">Nivel 3: Caos Aleatorio</option>
+            </select>
+        </div>
+        <div class="input-group" style="margin-bottom:0;">
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+                <input type="checkbox" id="syncBlind" style="transform:scale(1.3);"> Modo Ciego (El Emisor tampoco ve la carta)
+            </label>
+        </div>
+    </div>
+
+    <button class="btn-primary" onclick="startSyncLocal()">Iniciar Sesión</button>
+    <button class="btn-outline" onclick="showINTGSync()">← Volver</button>
+</div>
+
+<!-- PANTALLA 15: INTG SYNC LOCAL — SESIÓN -->
+<div class="container hidden" id="scr-sync-session">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <span id="syncStep" style="font-weight:bold;color:var(--text);font-family:monospace;letter-spacing:1px;">CARTA 01 / 25</span>
+        <button onclick="resetApp()" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:0.7rem;font-weight:bold;text-transform:uppercase;">REINICIAR</button>
+    </div>
+    <div class="card-display" id="syncCardSlot"></div>
+    <!-- Participant response rows — generated dynamically -->
+    <div id="syncResponseGrid" style="margin-top:16px;"></div>
+    <button class="btn-outline" style="margin-top:16px;" onclick="syncNextCard()">Siguiente Carta →</button>
+    <button class="btn-outline" style="margin-top:8px;color:var(--danger);border-color:var(--danger);" onclick="goToSyncFinalNotes()">Finalizar ahora</button>
+</div>
+
+<!-- PANTALLA 16: INTG SYNC — NOTAS FINALES -->
+<div class="container hidden" id="scr-sync-final">
+    <h1>Conclusión</h1>
+    <div class="subtitle">INTG Sync</div>
+    <div class="config-card">
+        <div class="input-group">
+            <label>Observaciones Finales</label>
+            <textarea id="syncFinalNotes" placeholder="Describe sensaciones, interferencias o comentarios del grupo..."></textarea>
+        </div>
+    </div>
+    <button class="btn-primary" onclick="processSyncReport()">Generar Reportes</button>
+</div>
+
+<!-- PANTALLA 17: INTG SYNC — REPORTES CON PESTAÑAS -->
+<div class="container hidden" id="scr-sync-report">
+    <h1>Reportes INTG Sync</h1>
+    <div class="subtitle" id="syncReportSubtitle">Sesión Grupal</div>
+
+    <!-- Participant tabs -->
+    <div id="syncReportTabs" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;"></div>
+
+    <!-- Active participant report -->
+    <div id="syncReportContent">
+        <canvas id="cnvSyncReport"></canvas>
+        <button class="btn-primary" style="margin-top:16px;" onclick="downloadSyncReport()">↓ Descargar Reporte</button>
+    </div>
+
+    <button class="btn-outline" onclick="saveSyncSession()" id="btnSyncSave" style="margin-top:10px;">Guardar Sesión en Historial</button>
+    <button class="btn-outline" onclick="resetApp()" style="margin-top:8px;">Nueva Sesión</button>
+</div>
+
+<!-- PANTALLA 18: INTG SYNC ONLINE — SALA DE ESPERA (EMISOR) -->
+<div class="container hidden" id="scr-sync-host">
+    <h1>Sala INTG Sync</h1>
+    <div class="subtitle" id="syncHostRoomCode">Código: ----</div>
+
+    <div style="background:rgba(0,0,0,0.4);border:2px solid var(--accent);border-radius:16px;padding:24px;text-align:center;margin-bottom:16px;">
+        <div style="font-size:0.65rem;color:var(--gray);text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;">Código de sala</div>
+        <div id="syncCodeBig" style="font-size:3rem;font-weight:bold;color:#58a6ff;letter-spacing:16px;font-family:monospace;">----</div>
+        <div style="font-size:0.7rem;color:var(--gray);margin-top:8px;margin-bottom:14px;">Los participantes ingresan este código o usan el enlace</div>
+        <button onclick="shareSyncLink()" style="background:rgba(31,111,235,0.2);border:1px solid rgba(31,111,235,0.5);color:#58a6ff;padding:10px;border-radius:10px;cursor:pointer;font-size:0.78rem;font-weight:bold;width:100%;-webkit-appearance:none;appearance:none;">🔗 Compartir enlace de la sala</button>
+    </div>
+
+    <div class="config-card" style="margin-bottom:14px;">
+        <div style="font-size:0.65rem;font-weight:bold;color:#58a6ff;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Participantes conectados</div>
+        <div id="syncMembersList" style="font-size:0.8rem;color:var(--gray);min-height:40px;">Esperando conexiones...</div>
+    </div>
+
+    <div class="config-card" style="margin-bottom:14px;">
+        <div class="input-group" style="margin-bottom:10px;">
+            <label>Longitud de la Sesión</label>
+            <select id="syncHostTotalCards">
+                <option value="25">25 Cartas (Estándar Rhine)</option>
+                <option value="50">50 Cartas (Extendido)</option>
+            </select>
+        </div>
+        <div class="input-group" style="margin-bottom:0;">
+            <label>Nivel de Visualización</label>
+            <select id="syncHostColorLevel">
+                <option value="1">Nivel 1: Color Negro</option>
+                <option value="2">Nivel 2: Color Estándar</option>
+                <option value="3">Nivel 3: Caos Aleatorio</option>
+            </select>
+        </div>
+    </div>
+
+    <button onclick="startSyncOnlineSession()" class="btn-primary">Iniciar Sesión</button>
+    <button onclick="cancelSyncRoom()" class="btn-outline" style="margin-top:10px;">Cancelar</button>
+</div>
+
+<!-- PANTALLA 19: INTG SYNC ONLINE — ESPERA RECEPTOR -->
+<div class="container hidden" id="scr-sync-guest">
+    <h1>INTG Sync</h1>
+    <div class="subtitle" id="syncGuestRoomCode">Sala: ----</div>
+
+    <div class="config-card" style="margin-bottom:14px;">
+        <div class="input-group" style="margin-bottom:10px;">
+            <label>Tu nombre</label>
+            <input type="text" id="syncGuestName" placeholder="Nombre del participante"/>
+        </div>
+        <!-- Optional login nudge -->
+        <div id="syncLoginNudge" style="background:rgba(31,111,235,0.08);border:1px solid rgba(31,111,235,0.25);border-radius:8px;padding:10px;font-size:0.72rem;color:var(--gray);display:flex;align-items:center;justify-content:space-between;gap:8px;">
+            <span>💡 Inicia sesión para guardar en tu historial</span>
+            <button onclick="signInWithGoogle()" style="background:#1f6feb;border:none;color:#fff;padding:6px 12px;border-radius:6px;font-size:0.68rem;font-weight:bold;cursor:pointer;white-space:nowrap;-webkit-appearance:none;appearance:none;">Conectar</button>
+        </div>
+    </div>
+
+    <button onclick="confirmJoinSync()" class="btn-primary">Unirse a la Sala</button>
+
+    <div id="syncGuestWaiting" style="display:none;text-align:center;padding:30px 0;">
+        <div style="font-size:1.5rem;margin-bottom:12px;">⏳</div>
+        <div style="font-size:0.9rem;color:var(--white);font-weight:bold;">Conectado — esperando al Emisor</div>
+        <div id="syncGuestMembersList" style="font-size:0.78rem;color:var(--gray);margin-top:12px;"></div>
+    </div>
+
+    <button onclick="cancelSyncRoom()" class="btn-outline" style="margin-top:14px;">Salir</button>
+</div>
+
+<!-- PANTALLA 20: INTG SYNC ONLINE — SESIÓN RECEPTOR -->
+<div class="container hidden" id="scr-sync-online-session">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <span id="syncOnlineStep" style="font-weight:bold;color:var(--text);font-family:monospace;letter-spacing:1px;">CARTA 01 / 25</span>
+        <span id="syncOnlineRoomTag" style="font-size:0.65rem;color:var(--gray);"></span>
+    </div>
+    <div class="card-display"><div class="hidden-mark">?</div></div>
+    <div class="options-grid" id="syncOnlineGrid"></div>
+    <div class="stats-hud">
+        <div class="stat-item"><span class="stat-lbl">DIRECTO</span><span id="syncVDir" class="stat-val">0</span></div>
+        <div class="stat-item"><span class="stat-lbl">PRECOGNICIÓN</span><span id="syncVPre" class="stat-val">0</span></div>
+        <div class="stat-item"><span class="stat-lbl">POSTCOGNICIÓN</span><span id="syncVPos" class="stat-val">0</span></div>
+    </div>
+</div>
+
+<!-- PANTALLA 21: INTG SYNC ONLINE — CONTROL EMISOR -->
+<div class="container hidden" id="scr-sync-host-session">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <span id="syncHostStep" style="font-weight:bold;color:var(--text);font-family:monospace;letter-spacing:1px;">CARTA 01 / 25</span>
+        <span style="font-size:0.65rem;color:var(--accent);font-weight:bold;">EMISOR</span>
+    </div>
+    <div class="card-display" id="syncHostCard"></div>
+    <div class="config-card" style="margin:14px 0;">
+        <div style="font-size:0.65rem;font-weight:bold;color:#58a6ff;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Respuestas en tiempo real</div>
+        <div id="syncLiveResponses" style="font-size:0.8rem;color:var(--gray);min-height:30px;">Esperando respuestas...</div>
+    </div>
+    <button onclick="syncOnlineNextCard()" id="syncHostNextBtn" class="btn-primary">Siguiente Carta →</button>
+    <button onclick="endSyncOnlineSession()" class="btn-outline" style="margin-top:10px;color:var(--danger);border-color:var(--danger);">Terminar Sesión</button>
+</div>
+
 <script>
 const COLORS=['#f1c40f','#e74c3c','#3498db','#111111','#2ecc71'];
 const SYMBOLS=[
@@ -685,44 +896,42 @@ const SVGS={
     str:'<path d="M50 12 L62 38 H90 L68 54 L76 82 L50 66 L24 82 L32 54 L10 38 H38 Z" stroke-width="8" fill="none"/>'
 };
 
-let deck=[],logs=[],step=0,isBlind=false,colorLevel=1,totalCards=25;
-let sessionMode='normal'; // 'normal' | 'guest' | 'auto'
+let deck=[],logs=[],step=0,isBlind=true,colorLevel=1,totalCards=25;
+
+// ── INTG SYNC STATE ────────────────────────────────────────────────────────
+let syncParticipants=[]; // [{name, isEmisor}]
+let syncLogs={};         // {participantName: [answers]}
+let syncDeck=[];
+let syncStep=0;
+let syncEmisorName='';
+let syncRoomId=null;
+let syncRole=null;       // 'host' | 'guest'
+let syncListeners=[];
+let syncActiveParticipant=0; // index for report tabs
+let sessionMode='auto'; // 'auto' | 'sync-local' | 'sync-online-host' | 'sync-online-guest'
 
 // ── MODE SELECTOR ──────────────────────────────────────────────────────────
 function setMode(mode, btn){
     sessionMode=mode;
     document.querySelectorAll('.mode-btn').forEach(b=>b.classList.remove('active'));
-    btn.classList.add('active');
+    if(btn) btn.classList.add('active');
     const badge=document.getElementById('modeBadge');
-    const fe=document.getElementById('fieldEmisor');
-    const blind=document.getElementById('inBlind');
-    const blindLabel=document.getElementById('blindLabel');
-    const isAuto=mode==='auto'||mode==='auto-guest';
-    if(mode==='normal'){
-        badge.textContent='Protocolo estándar con Emisor y Receptor.';
-        fe.style.display='';
-        blind.checked=false; blind.disabled=false;
-        blindLabel.style.display='';
-        document.getElementById('inEmisor').value='';
-    } else if(mode==='guest'){
-        badge.textContent='Pareja Invitada — sesión sin historial, solo descarga.';
-        fe.style.display='';
-        blind.checked=false; blind.disabled=false;
-        blindLabel.style.display='';
-        document.getElementById('inEmisor').value='';
-    } else if(mode==='auto'){
-        badge.textContent='Test individual — carta oculta, sin Emisor.';
-        fe.style.display='none';
-        blind.checked=true; blind.disabled=true;
-        blindLabel.style.display='none';
-        document.getElementById('inEmisor').value='Auto Test';
-    } else if(mode==='auto-guest'){
-        badge.textContent='Auto Test sin historial — solo descarga de reporte.';
-        fe.style.display='none';
-        blind.checked=true; blind.disabled=true;
-        blindLabel.style.display='none';
-        document.getElementById('inEmisor').value='Auto Test';
-    }
+    if(badge) badge.textContent='Test individual — carta oculta, sin Emisor.';
+}
+
+function showINTGSync(){
+    document.querySelectorAll('.mode-btn').forEach(b=>b.classList.remove('active'));
+    const syncBtn=document.getElementById('modeSync');
+    if(syncBtn) syncBtn.classList.add('active');
+    hideAll();
+    document.getElementById('scr-sync').classList.remove('hidden');
+    window.scrollTo(0,0);
+}
+
+function showSyncLocal(){
+    hideAll();
+    document.getElementById('scr-sync-local-config').classList.remove('hidden');
+    window.scrollTo(0,0);
 }
 
 // ── UTILS ──────────────────────────────────────────────────────────────────
@@ -792,7 +1001,7 @@ function getAutoHistory(){try{return JSON.parse(localStorage.getItem('zener_hist
 function saveAutoHistory(h){try{localStorage.setItem('zener_history_auto',JSON.stringify(h));}catch(e){showToast('Almacenamiento no disponible en este navegador','#f85149');}}
 
 // ── NAVIGATION ─────────────────────────────────────────────────────────────
-const ALL=['scr-setup','scr-test','scr-final-notes','scr-report','scr-history','scr-history-auto','scr-sess-report','scr-help','scr-party-lobby','scr-party-host','scr-party-guest','scr-party-session','scr-party-host-session'];
+const ALL=['scr-setup','scr-test','scr-final-notes','scr-report','scr-history','scr-history-auto','scr-sess-report','scr-help','scr-party-lobby','scr-party-host','scr-party-guest','scr-party-session','scr-party-host-session','scr-sync','scr-sync-local-config','scr-sync-session','scr-sync-final','scr-sync-report','scr-sync-host','scr-sync-guest','scr-sync-online-session','scr-sync-host-session'];
 function hideAll(){ALL.forEach(id=>document.getElementById(id).classList.add('hidden'));}
 function updateAutoHistoryBtn(){
     const btn=document.getElementById('btnAutoHistory');
@@ -831,39 +1040,36 @@ function showAutoHistory(){
 
 // ── RESET ──────────────────────────────────────────────────────────────────
 function resetApp(){
-    deck=[];logs=[];step=0;isBlind=false;colorLevel=1;totalCards=25;
-    sessionMode='normal';
+    deck=[];logs=[];step=0;isBlind=true;colorLevel=1;totalCards=25;
+    sessionMode='auto';
+    // Reset INTG Sync state
+    syncParticipants=[];syncLogs={};syncDeck=[];syncStep=0;syncEmisorName='';syncRoomId=null;syncRole=null;
     hideAll();document.getElementById('scr-setup').classList.remove('hidden');
     document.querySelector('.stats-hud').style.visibility='visible';
-    ['inEmisor','inReceptor'].forEach(id=>document.getElementById(id).value='');
-    ['inObsNotes','inFinalNotes'].forEach(id=>document.getElementById(id).value='');
-    document.getElementById('inBlind').checked=false;
-    document.getElementById('inBlind').disabled=false;
-    document.getElementById('blindLabel').style.display='';
-    document.getElementById('fieldEmisor').style.display='';
+    ['inReceptor','inObsNotes','inFinalNotes'].forEach(id=>{
+        const el=document.getElementById(id); if(el) el.value='';
+    });
     document.getElementById('inTotalCards').value='25';
     document.getElementById('inColorLevel').value='1';
-    // Reset mode buttons
     document.querySelectorAll('.mode-btn').forEach(b=>b.classList.remove('active'));
-    document.getElementById('modeNormal').classList.add('active');
-    document.getElementById('modeBadge').textContent='';
+    document.getElementById('modeAuto').classList.add('active');
+    const badge=document.getElementById('modeBadge');
+    if(badge) badge.textContent='Test individual — carta oculta, sin Emisor.';
     ['vDir','vPre','vPos'].forEach(id=>document.getElementById(id).innerText='0');
     const btn=document.getElementById('btnSave');
-    btn.textContent='Guardar Sesión en Historial';btn.disabled=false;btn.style.color='';btn.style.borderColor='';btn.style.display='';
+    if(btn){btn.textContent='Guardar Sesión en Historial';btn.disabled=false;btn.style.color='';btn.style.borderColor='';btn.style.display='';}
+    updateAutoHistoryBtn();
+    window.scrollTo(0,0);
 }
 
-// ── SESSION FLOW ───────────────────────────────────────────────────────────
+// ── AUTO TEST SESSION FLOW ─────────────────────────────────────────────────
 function startSession(){
-    if(sessionMode==='auto'){
-        document.getElementById('inEmisor').value='Auto Test';
-        document.getElementById('inBlind').checked=true;
-    }
-    isBlind=document.getElementById('inBlind').checked;
+    // Auto Test always uses blind mode
+    isBlind=true;
     colorLevel=parseInt(document.getElementById('inColorLevel').value);
     totalCards=parseInt(document.getElementById('inTotalCards').value);
     hideAll();document.getElementById('scr-test').classList.remove('hidden');
-    // Hide stats HUD in blind mode to avoid interference
-    document.querySelector('.stats-hud').style.visibility=isBlind?'hidden':'visible';
+    document.querySelector('.stats-hud').style.visibility='hidden';
     deck=[];
     for(let i=0;i<totalCards/5;i++){
         SYMBOLS.forEach(s=>{
@@ -879,8 +1085,6 @@ function startSession(){
     SYMBOLS.forEach(s=>{
         const btn=document.createElement('div');btn.className='opt-btn';
         const dc=colorLevel===1?'#000000':s.c;
-        // For black symbols: add a subtle white outline via filter/paint-order trick
-        // All symbols get a subtle white glow so they're visible on dark button backgrounds
         const isWav=s.id==='wav';
         const shadowOpacity=isWav&&dc!=='#000000'?0.22:0.65;
         const svgContent=`<svg viewBox="0 0 100 100" stroke="${dc}" style="filter:drop-shadow(0 0 2px rgba(255,255,255,${shadowOpacity}))">${SVGS[s.id]}</svg>`;
@@ -910,27 +1114,12 @@ function updateStats(){
 function goToFinalNotes(){hideAll();document.getElementById('scr-final-notes').classList.remove('hidden');}
 function processReport(){
     hideAll();document.getElementById('scr-report').classList.remove('hidden');
-    // Mode-specific UI adjustments
     const btnSave=document.getElementById('btnSave');
-    const title=document.getElementById('reportTitle');
-    const sub=document.getElementById('reportSubtitle');
-    if(sessionMode==='guest'||sessionMode==='auto-guest'){
-        title.textContent=sessionMode==='auto-guest'?'Reporte Auto Test':'Reporte de Protocolo';
-        sub.textContent=sessionMode==='auto-guest'?'Auto Test · Sin historial':'Sesión de Invitado — Sin historial';
-        btnSave.style.display='none';
-    } else if(sessionMode==='auto'){
-        title.textContent='Reporte Auto Test';
-        sub.textContent='Test Individual';
-        btnSave.style.display='';
-        btnSave.textContent='Guardar Sesión en Historial';
-        btnSave.disabled=false; btnSave.style.color=''; btnSave.style.borderColor='';
-    } else {
-        title.textContent='Reporte de Protocolo';
-        sub.textContent='Datos Procesados';
-        btnSave.style.display='';
-        btnSave.textContent='Guardar Sesión en Historial';
-        btnSave.disabled=false; btnSave.style.color=''; btnSave.style.borderColor='';
-    }
+    document.getElementById('reportTitle').textContent='Reporte Auto Test';
+    document.getElementById('reportSubtitle').textContent='Test Individual';
+    btnSave.style.display='';
+    btnSave.textContent='Guardar en Historial Auto Test';
+    btnSave.disabled=false; btnSave.style.color=''; btnSave.style.borderColor='';
     generateCanvas();
 }
 
@@ -955,7 +1144,7 @@ function computeStreaks(logsArr,deckArr,total){
 
 // ── SAVE SESSION ───────────────────────────────────────────────────────────
 function saveSession(){
-    const emisor=document.getElementById('inEmisor').value||'Emisor';
+    const emisor='Auto Test';
     const receptor=document.getElementById('inReceptor').value||'Receptor';
     const obsNotes=document.getElementById('inObsNotes').value.trim();
     const finNotes=document.getElementById('inFinalNotes').value.trim();
@@ -974,7 +1163,7 @@ function saveSession(){
         date:new Date().toLocaleDateString('es-MX'),
         time:new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),
         emisor,receptor,totalCards,colorLevel,
-        blind:document.getElementById('inBlind').checked,
+        blind:true,
         d,p,ps,
         dPct:Math.round((d/totalCards)*100),
         pPct:Math.round((p/totalCards)*100),
@@ -1975,7 +2164,7 @@ function buildReport(ctx,cnv,P){
 function generateCanvas(){
     const cnv=document.getElementById('cnvReport');
     const ctx=cnv.getContext('2d');
-    const emisor=document.getElementById('inEmisor').value||'Emisor';
+    const emisor='Auto Test';
     const receptor=document.getElementById('inReceptor').value||'Receptor';
     const obsNotes=document.getElementById('inObsNotes').value.trim();
     const finNotes=document.getElementById('inFinalNotes').value.trim();
@@ -2010,6 +2199,477 @@ function renderSavedCanvas(s){
         seqNum:s.seqNum||null,
         logsArr:s.logsIds||[],deckArr,streaks:s.streaks||{dir:[],pre:[],post:[]}
     });
+}
+
+// ── INTG SYNC ──────────────────────────────────────────────────────────────
+
+function addSyncParticipant(){
+    const container=document.getElementById('syncParticipants');
+    const count=container.querySelectorAll('.sync-participant-input').length+1;
+    const div=document.createElement('div');
+    div.className='input-group';
+    div.style.cssText='display:flex;gap:8px;align-items:center;';
+    div.innerHTML=`<input type="text" class="sync-participant-input" placeholder="Participante ${count}" style="flex:1;"/><button onclick="this.parentElement.remove()" style="background:transparent;border:1px solid var(--danger);color:var(--danger);width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:1rem;-webkit-appearance:none;appearance:none;">×</button>`;
+    container.appendChild(div);
+}
+
+function startSyncLocal(){
+    const emisor=document.getElementById('syncEmisor').value.trim()||'Emisor';
+    const inputs=document.querySelectorAll('.sync-participant-input');
+    const participants=[];
+    inputs.forEach(inp=>{
+        const n=inp.value.trim();
+        if(n) participants.push(n);
+    });
+    if(participants.length===0){showToast('Agrega al menos un participante','#f85149');return;}
+
+    syncEmisorName=emisor;
+    // Build participant list: emisor first, then receptores
+    syncParticipants=[{name:emisor,isEmisor:true},...participants.map(n=>({name:n,isEmisor:false}))];
+    syncLogs={};
+    syncParticipants.forEach(p=>{ syncLogs[p.name]=[]; });
+
+    colorLevel=parseInt(document.getElementById('syncColorLevel').value);
+    totalCards=parseInt(document.getElementById('syncTotalCards').value);
+    isBlind=document.getElementById('syncBlind').checked;
+    syncDeck=[];
+    for(let i=0;i<totalCards/5;i++){
+        SYMBOLS.forEach(s=>{
+            let c='#000000';
+            if(colorLevel===2) c=s.c;
+            if(colorLevel===3) c=COLORS[Math.floor(Math.random()*COLORS.length)];
+            syncDeck.push({id:s.id,renderColor:c});
+        });
+    }
+    fisherYates(syncDeck);
+    syncStep=0;
+    sessionMode='sync-local';
+    hideAll();
+    document.getElementById('scr-sync-session').classList.remove('hidden');
+    drawSyncStep();
+    window.scrollTo(0,0);
+}
+
+function drawSyncStep(){
+    const card=syncDeck[syncStep];
+    document.getElementById('syncStep').textContent='CARTA '+String(syncStep+1).padStart(2,'0')+' / '+syncDeck.length;
+    const slot=document.getElementById('syncCardSlot');
+    if(isBlind){
+        slot.innerHTML='<div class="hidden-mark">?</div>';
+    } else {
+        slot.innerHTML=`<svg viewBox="0 0 100 100" stroke="${card.renderColor}">${SVGS[card.id]}</svg>`;
+    }
+    buildSyncResponseGrid();
+}
+
+function buildSyncResponseGrid(){
+    const grid=document.getElementById('syncResponseGrid');
+    grid.innerHTML='';
+    syncParticipants.forEach(p=>{
+        const alreadyAnswered=syncLogs[p.name][syncStep]!==undefined;
+        const row=document.createElement('div');
+        row.style.cssText='margin-bottom:14px;background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:12px;padding:12px;';
+        const label=document.createElement('div');
+        label.style.cssText='font-size:0.65rem;font-weight:bold;color:'+(p.isEmisor?'#58a6ff':'#3fb950')+';text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;';
+        label.textContent=(p.isEmisor?'⚡ EMISOR: ':'👤 ')+p.name+(alreadyAnswered?' ✓':'');
+        row.appendChild(label);
+        if(alreadyAnswered){
+            const ans=syncLogs[p.name][syncStep];
+            const sym=SYMBOLS.find(s=>s.id===ans);
+            const done=document.createElement('div');
+            done.style.cssText='font-size:0.8rem;color:#3fb950;';
+            done.textContent='Respondió: '+(sym?sym.n:ans);
+            row.appendChild(done);
+        } else {
+            const btnRow=document.createElement('div');
+            btnRow.style.cssText='display:grid;grid-template-columns:repeat(5,1fr);gap:6px;';
+            SYMBOLS.forEach(s=>{
+                const dc=colorLevel===1?'#000000':s.c;
+                const isWav=s.id==='wav';
+                const shadowOpacity=isWav&&dc!=='#000000'?0.22:0.65;
+                const b=document.createElement('div');
+                b.className='opt-btn';
+                b.style.cssText='padding:8px 3px;';
+                b.innerHTML=`<svg viewBox="0 0 100 100" stroke="${dc}" style="filter:drop-shadow(0 0 2px rgba(255,255,255,${shadowOpacity}))">${SVGS[s.id]}</svg><span>${s.n}</span>`;
+                b.onclick=(function(pName,sId,rowEl){
+                    return function(){
+                        syncLogs[pName][syncStep]=sId;
+                        buildSyncResponseGrid();
+                    };
+                })(p.name,s.id,row);
+                btnRow.appendChild(b);
+            });
+            row.appendChild(btnRow);
+        }
+        grid.appendChild(row);
+    });
+    // Check if all participants answered
+    const allAnswered=syncParticipants.every(p=>syncLogs[p.name][syncStep]!==undefined);
+    const nextBtn=document.querySelector('#scr-sync-session .btn-outline');
+    if(nextBtn) nextBtn.style.opacity=allAnswered?'1':'0.4';
+}
+
+function syncNextCard(){
+    const allAnswered=syncParticipants.every(p=>syncLogs[p.name][syncStep]!==undefined);
+    if(!allAnswered){showToast('Todos los participantes deben responder antes de continuar','#f85149');return;}
+    syncStep++;
+    if(syncStep>=syncDeck.length){
+        goToSyncFinalNotes();
+    } else {
+        drawSyncStep();
+        window.scrollTo(0,0);
+    }
+}
+
+function goToSyncFinalNotes(){
+    hideAll();
+    document.getElementById('scr-sync-final').classList.remove('hidden');
+    window.scrollTo(0,0);
+}
+
+function processSyncReport(){
+    const finNotes=document.getElementById('syncFinalNotes').value.trim();
+    hideAll();
+    document.getElementById('scr-sync-report').classList.remove('hidden');
+    document.getElementById('syncReportSubtitle').textContent='Sesión INTG Sync — '+syncParticipants.length+' participantes';
+    syncActiveParticipant=0;
+    buildSyncReportTabs();
+    renderSyncParticipantReport(0, finNotes);
+    window.scrollTo(0,0);
+}
+
+function buildSyncReportTabs(){
+    const tabs=document.getElementById('syncReportTabs');
+    tabs.innerHTML='';
+    syncParticipants.forEach((p,i)=>{
+        const btn=document.createElement('button');
+        btn.textContent=(p.isEmisor?'⚡ ':'')+p.name;
+        btn.style.cssText='padding:8px 14px;border-radius:20px;border:1px solid '+(i===syncActiveParticipant?'var(--accent)':'var(--border)')+';background:'+(i===syncActiveParticipant?'var(--accent)':'transparent')+';color:'+(i===syncActiveParticipant?'#fff':'var(--gray)')+';cursor:pointer;font-size:0.72rem;font-weight:bold;-webkit-appearance:none;appearance:none;';
+        btn.onclick=(function(idx){return function(){
+            syncActiveParticipant=idx;
+            buildSyncReportTabs();
+            renderSyncParticipantReport(idx, document.getElementById('syncFinalNotes').value.trim());
+        };})(i);
+        tabs.appendChild(btn);
+    });
+}
+
+function renderSyncParticipantReport(idx, finNotes){
+    const p=syncParticipants[idx];
+    const pLogs=syncLogs[p.name]||[];
+    const cnv=document.getElementById('cnvSyncReport');
+    const ctx=cnv.getContext('2d');
+    const deckArr=syncDeck.map(d=>({id:d.id,renderColor:d.renderColor}));
+    let d=0,pPre=0,ps=0;
+    pLogs.forEach((ans,i)=>{
+        if(ans===syncDeck[i].id) d++;
+        if(i+1<pLogs.length&&ans===syncDeck[i+1].id) pPre++;
+        if(i>0&&ans===syncDeck[i-1].id) ps++;
+    });
+    const emisorLabel=p.isEmisor?'EMISOR / OPERADOR':'RECEPTOR';
+    buildReport(ctx,cnv,{
+        emisor:syncEmisorName+' (Emisor)',
+        receptor:p.name+' — '+emisorLabel,
+        obsNotes:'Sesión INTG Sync · '+syncParticipants.map(x=>x.name).join(', '),
+        finNotes:finNotes||'',
+        d,p:pPre,ps,
+        totalCards:syncDeck.length,
+        colorLevel,
+        dateStr:new Date().toLocaleDateString('es-MX'),
+        timeStr:new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),
+        sessId:null,
+        seqNum:null,
+        logsArr:pLogs,
+        deckArr,
+        streaks:computeStreaks(pLogs,deckArr,syncDeck.length)
+    });
+}
+
+function downloadSyncReport(){
+    const p=syncParticipants[syncActiveParticipant];
+    downloadPNG('cnvSyncReport', p.name);
+}
+
+function saveSyncSession(){
+    const finNotes=document.getElementById('syncFinalNotes').value.trim();
+    const sessionId=Date.now();
+    const h=getHistory();
+    const seqNum=h.length+1;
+    const sessionData={
+        id:sessionId,
+        seqNum,
+        type:'sync-local',
+        date:new Date().toLocaleDateString('es-MX'),
+        time:new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),
+        emisor:syncEmisorName,
+        participants:syncParticipants.map(p=>{
+            const pLogs=syncLogs[p.name]||[];
+            let d=0,pv=0,ps=0;
+            pLogs.forEach((ans,i)=>{
+                if(ans===syncDeck[i].id) d++;
+                if(i+1<pLogs.length&&ans===syncDeck[i+1].id) pv++;
+                if(i>0&&ans===syncDeck[i-1].id) ps++;
+            });
+            return {name:p.name,isEmisor:p.isEmisor,logs:pLogs,d,p:pv,ps,
+                dPct:Math.round((d/syncDeck.length)*100),
+                pPct:Math.round((pv/syncDeck.length)*100),
+                psPct:Math.round((ps/syncDeck.length)*100)};
+        }),
+        totalCards:syncDeck.length,
+        colorLevel,
+        deckIds:syncDeck.map(c=>c.id),
+        finNotes
+    };
+    // Also use receptor/d/p/ps from first non-emisor for backwards compat with chart
+    const firstReceptor=syncParticipants.find(p=>!p.isEmisor)||syncParticipants[0];
+    const fr=sessionData.participants.find(p=>p.name===firstReceptor.name)||sessionData.participants[0];
+    sessionData.receptor=firstReceptor.name;
+    sessionData.d=fr.d; sessionData.p=fr.p; sessionData.ps=fr.ps;
+    sessionData.dPct=fr.dPct; sessionData.pPct=fr.pPct; sessionData.psPct=fr.psPct;
+    sessionData.logsIds=fr.logs;
+    sessionData.streaks=computeStreaks(fr.logs,syncDeck.map(c=>({id:c.id})),syncDeck.length);
+
+    h.push(sessionData);
+    saveHistory(h);
+    saveSessionToCloud(sessionData, false);
+    const btn=document.getElementById('btnSyncSave');
+    btn.textContent='✓ Guardado';btn.disabled=true;btn.style.color='#3fb950';
+    showToast('Sesión INTG Sync guardada ✓');
+}
+
+// ── INTG SYNC ONLINE ───────────────────────────────────────────────────────
+function createSyncRoom(){
+    const user=currentUser||(auth&&auth.currentUser);
+    if(!user){showToast('Inicia sesión para crear una sala','#f85149');return;}
+    if(!rtdb){showToast('Firebase no disponible','#f85149');return;}
+    const code=genRoomCode();
+    syncRoomId=code;
+    syncRole='host';
+    rtdb.ref('sync/'+code).set({
+        host:user.uid,
+        hostName:user.displayName||'Emisor',
+        status:'waiting',
+        totalCards:25,
+        colorLevel:1,
+        currentCard:0,
+        deck:[],
+        members:{}
+    }).then(function(){
+        hideAll();
+        document.getElementById('scr-sync-host').classList.remove('hidden');
+        document.getElementById('syncHostRoomCode').textContent='Código: '+code;
+        document.getElementById('syncCodeBig').textContent=code;
+        // Listen for members
+        const ref=rtdb.ref('sync/'+code+'/members');
+        const off=ref.on('value',function(snap){
+            const members=snap.val()||{};
+            const list=Object.values(members);
+            const el=document.getElementById('syncMembersList');
+            if(el) el.innerHTML=list.length===0
+                ?'<span style="color:var(--gray);">Esperando participantes...</span>'
+                :list.map(m=>'<div style="padding:3px 0;color:var(--white);">● '+m.name+'</div>').join('');
+        });
+        syncListeners.push(function(){ref.off('value',off);});
+        window.scrollTo(0,0);
+    }).catch(function(e){showToast('Error al crear sala: '+e.message,'#f85149');});
+}
+
+function shareSyncLink(){
+    if(!syncRoomId) return;
+    const url=window.location.href.split('?')[0]+'?sync='+syncRoomId;
+    const text='Únete a mi sesión INTG Sync 🧠\nCódigo: '+syncRoomId+'\nEnlace: '+url;
+    if(navigator.share){
+        navigator.share({title:'INTG Sync — Código '+syncRoomId,text:text,url:url}).catch(function(){});
+    } else {
+        navigator.clipboard.writeText(text).then(function(){
+            showToast('Enlace copiado ✓');
+        }).catch(function(){
+            showToast('Código: '+syncRoomId,'#58a6ff');
+        });
+    }
+}
+
+function joinSyncRoom(){
+    const code=(document.getElementById('syncCodeInput').value||'').trim().toUpperCase();
+    if(code.length!==4){showToast('El código debe ser de 4 letras','#f85149');return;}
+    syncRoomId=code;
+    syncRole='guest';
+    hideAll();
+    document.getElementById('scr-sync-guest').classList.remove('hidden');
+    document.getElementById('syncGuestRoomCode').textContent='Sala: '+code;
+    // Show login nudge only if not logged in
+    const nudge=document.getElementById('syncLoginNudge');
+    if(nudge) nudge.style.display=(currentUser||(auth&&auth.currentUser))?'none':'flex';
+    window.scrollTo(0,0);
+}
+
+function confirmJoinSync(){
+    if(!rtdb){showToast('Firebase no disponible','#f85149');return;}
+    const nameInput=document.getElementById('syncGuestName').value.trim();
+    const user=currentUser||(auth&&auth.currentUser);
+    const guestName=nameInput||(user&&(user.displayName||user.email))||'Participante';
+    if(!guestName){showToast('Ingresa tu nombre','#f85149');return;}
+
+    rtdb.ref('sync/'+syncRoomId).once('value').then(function(snap){
+        if(!snap.exists()){showToast('Sala no encontrada','#f85149');return;}
+        const uid=user?user.uid:('guest_'+Date.now());
+        return rtdb.ref('sync/'+syncRoomId+'/members/'+uid).set({
+            name:guestName,uid:uid,answers:{}
+        });
+    }).then(function(){
+        // Hide form, show waiting
+        document.getElementById('syncGuestWaiting').style.display='block';
+        document.querySelector('#scr-sync-guest .btn-primary').style.display='none';
+        document.getElementById('syncGuestName').style.display='none';
+        document.querySelector('#scr-sync-guest label') && (document.querySelector('#scr-sync-guest label').style.display='none');
+
+        // Listen for session start
+        const statusRef=rtdb.ref('sync/'+syncRoomId+'/status');
+        const offStatus=statusRef.on('value',function(snap){
+            if(snap.val()==='active'){
+                rtdb.ref('sync/'+syncRoomId).once('value').then(function(roomSnap){
+                    const room=roomSnap.val();
+                    syncDeck=room.deck||[];
+                    startSyncGuestSession(room, guestName);
+                });
+            }
+            if(snap.val()==='ended') endSyncGuestSession();
+        });
+        syncListeners.push(function(){statusRef.off('value',offStatus);});
+
+        // Listen for members list
+        const membersRef=rtdb.ref('sync/'+syncRoomId+'/members');
+        const offM=membersRef.on('value',function(snap){
+            const members=snap.val()||{};
+            const el=document.getElementById('syncGuestMembersList');
+            if(el) el.innerHTML=Object.values(members).map(m=>'<div style="padding:3px 0;">● '+m.name+'</div>').join('');
+        });
+        syncListeners.push(function(){membersRef.off('value',offM);});
+    }).catch(function(e){showToast('Error: '+e.message,'#f85149');});
+}
+
+async function startSyncOnlineSession(){
+    if(!rtdb||!syncRoomId) return;
+    const totalCards=parseInt(document.getElementById('syncHostTotalCards').value);
+    const colorLevel=parseInt(document.getElementById('syncHostColorLevel').value);
+    syncDeck=[];
+    for(let i=0;i<totalCards/5;i++){
+        SYMBOLS.forEach(s=>{
+            let c='#000000';
+            if(colorLevel===2) c=s.c;
+            if(colorLevel===3) c=COLORS[Math.floor(Math.random()*COLORS.length)];
+            syncDeck.push({id:s.id,renderColor:c});
+        });
+    }
+    fisherYates(syncDeck);
+    syncStep=0;
+    await rtdb.ref('sync/'+syncRoomId).update({
+        status:'active',totalCards,colorLevel,currentCard:0,deck:syncDeck
+    });
+    showSyncHostSession();
+}
+
+function showSyncHostSession(){
+    hideAll();
+    document.getElementById('scr-sync-host-session').classList.remove('hidden');
+    drawSyncHostCard();
+    const answersRef=rtdb.ref('sync/'+syncRoomId+'/members');
+    const offA=answersRef.on('value',function(snap){
+        const members=snap.val()||{};
+        const el=document.getElementById('syncLiveResponses');
+        if(!el) return;
+        const lines=Object.values(members).map(function(m){
+            const ans=m.answers&&m.answers[syncStep];
+            const sym=ans?SYMBOLS.find(s=>s.id===ans):null;
+            const label=sym?sym.n:(ans||'...');
+            return '<div style="padding:3px 0;"><span style="color:var(--white);font-weight:bold;">'+m.name+'</span> <span style="color:var(--gray);">→</span> <span style="color:#58a6ff;">'+label+'</span></div>';
+        });
+        el.innerHTML=lines.join('')||'Esperando respuestas...';
+    });
+    syncListeners.push(function(){answersRef.off('value',offA);});
+    window.scrollTo(0,0);
+}
+
+function drawSyncHostCard(){
+    const card=syncDeck[syncStep];
+    if(!card) return;
+    document.getElementById('syncHostStep').textContent='CARTA '+String(syncStep+1).padStart(2,'0')+' / '+syncDeck.length;
+    document.getElementById('syncHostCard').innerHTML=`<svg viewBox="0 0 100 100" stroke="${card.renderColor}">${SVGS[card.id]}</svg>`;
+    const btn=document.getElementById('syncHostNextBtn');
+    if(btn) btn.textContent=syncStep>=syncDeck.length-1?'Terminar Sesión →':'Siguiente Carta →';
+}
+
+async function syncOnlineNextCard(){
+    if(syncStep>=syncDeck.length-1){endSyncOnlineSession();return;}
+    syncStep++;
+    await rtdb.ref('sync/'+syncRoomId).update({currentCard:syncStep});
+    drawSyncHostCard();
+}
+
+async function endSyncOnlineSession(){
+    await rtdb.ref('sync/'+syncRoomId).update({status:'ended'});
+    syncListeners.forEach(function(fn){fn();});
+    syncListeners=[];
+    showToast('Sesión INTG Sync terminada');
+    hideAll();
+    document.getElementById('scr-setup').classList.remove('hidden');
+}
+
+function startSyncGuestSession(room, guestName){
+    syncDeck=room.deck||[];
+    const user=currentUser||(auth&&auth.currentUser);
+    const uid=user?user.uid:('guest_'+Date.now());
+    hideAll();
+    document.getElementById('scr-sync-online-session').classList.remove('hidden');
+    document.getElementById('syncOnlineRoomTag').textContent='INTG Sync · '+syncRoomId;
+    const grid=document.getElementById('syncOnlineGrid');
+    grid.innerHTML='';
+    SYMBOLS.forEach(function(s){
+        const btn=document.createElement('div');
+        btn.className='opt-btn';
+        const dc=room.colorLevel===1?'#000000':s.c;
+        const isWav=s.id==='wav';
+        const shadowOpacity=isWav&&dc!=='#000000'?0.22:0.65;
+        btn.innerHTML=`<svg viewBox="0 0 100 100" stroke="${dc}" style="filter:drop-shadow(0 0 2px rgba(255,255,255,${shadowOpacity}))">${SVGS[s.id]}</svg><span>${s.n}</span>`;
+        btn.onclick=(function(sId){return function(){
+            rtdb.ref('sync/'+syncRoomId+'/members/'+uid+'/answers/'+syncStep).set(sId);
+            updateSyncGuestStats(sId);
+            showToast('Respuesta registrada ✓');
+        };})(s.id);
+        grid.appendChild(btn);
+    });
+    const cardRef=rtdb.ref('sync/'+syncRoomId+'/currentCard');
+    const offCard=cardRef.on('value',function(snap){
+        syncStep=snap.val()||0;
+        document.getElementById('syncOnlineStep').textContent='CARTA '+String(syncStep+1).padStart(2,'0')+' / '+syncDeck.length;
+    });
+    syncListeners.push(function(){cardRef.off('value',offCard);});
+    window.scrollTo(0,0);
+}
+
+function updateSyncGuestStats(lastAnswer){
+    // Update HUD stats for guest
+    const dEl=document.getElementById('syncVDir');
+    const pEl=document.getElementById('syncVPre');
+    const psEl=document.getElementById('syncVPos');
+    if(dEl&&lastAnswer===syncDeck[syncStep].id) dEl.textContent=parseInt(dEl.textContent||'0')+1;
+}
+
+function endSyncGuestSession(){
+    syncListeners.forEach(function(fn){fn();});
+    syncListeners=[];
+    showToast('La sesión INTG Sync ha terminado');
+    hideAll();
+    document.getElementById('scr-setup').classList.remove('hidden');
+}
+
+function cancelSyncRoom(){
+    syncListeners.forEach(function(fn){fn();});
+    syncListeners=[];
+    if(syncRoomId&&syncRole==='host'&&rtdb) rtdb.ref('sync/'+syncRoomId).remove();
+    syncRoomId=null; syncRole=null;
+    hideAll();
+    document.getElementById('scr-setup').classList.remove('hidden');
 }
 
 // ── FIREBASE + AUTH + PARTY (loaded after app constants) ──────────────
@@ -2498,15 +3158,24 @@ if(document.readyState==='loading'){
 
 function checkPartyURLParam(){
     const params=new URLSearchParams(window.location.search);
-    const code=params.get('party');
-    if(code&&code.length===4){
-        // Pre-fill the code and go to lobby
+    const partyCode=params.get('party');
+    const syncCode=params.get('sync');
+    if(partyCode&&partyCode.length===4){
+        const input=document.getElementById('partyCodeInput');
+        if(input) input.value=partyCode.toUpperCase();
+        setTimeout(function(){ showToast('Código Party detectado: '+partyCode.toUpperCase(),'#58a6ff'); },1000);
+    }
+    if(syncCode&&syncCode.length===4){
         setTimeout(function(){
-            const input=document.getElementById('partyCodeInput');
-            if(input) input.value=code.toUpperCase();
-            // Scroll to lobby section if party lobby is shown
-            showToast('Código de sala detectado: '+code.toUpperCase(),'#58a6ff');
-        }, 1000);
+            syncRoomId=syncCode.toUpperCase();
+            syncRole='guest';
+            hideAll();
+            document.getElementById('scr-sync-guest').classList.remove('hidden');
+            document.getElementById('syncGuestRoomCode').textContent='Sala: '+syncCode.toUpperCase();
+            const nudge=document.getElementById('syncLoginNudge');
+            if(nudge) nudge.style.display=(currentUser||(auth&&auth.currentUser))?'none':'flex';
+            showToast('Sala INTG Sync: '+syncCode.toUpperCase(),'#58a6ff');
+        },1200);
     }
 }</script>
 
