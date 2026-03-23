@@ -121,7 +121,7 @@
         </div>
     </div>
     <button class="btn-primary" onclick="startSession()">Iniciar Auto Test</button>
-    <button class="btn-outline" onclick="showHistory()">Ver Historial de Sesiones</button>
+    <button class="btn-outline" onclick="showHistoryPicker()">Ver Historial de Sesiones</button>
     <button class="btn-outline" id="btnAutoHistory" onclick="showAutoHistory()" style="display:none;">Ver Historial Auto Test</button>
 
     <!-- Auth bar -->
@@ -817,7 +817,38 @@
     <h1>Resultados Grupales</h1>
     <div class="subtitle" id="syncRankingSubtitle">INTG Sync</div>
     <div id="syncRankingContent" style="margin-bottom:16px;"></div>
-    <button class="btn-outline" onclick="showSetupWithThanks()" style="margin-top:10px;border-color:#1f6feb;color:#58a6ff;">⌂ Volver al Inicio</button>
+    <canvas id="cnvRankingSummary" style="display:none;border-radius:12px;margin-bottom:12px;"></canvas>
+    <button class="btn-primary" onclick="downloadRankingSummary()" id="btnRankingDownload" style="margin-bottom:10px;">↓ Descargar Ranking como PNG</button>
+    <button class="btn-outline" onclick="showSetupWithThanks()" style="margin-top:4px;border-color:#1f6feb;color:#58a6ff;">⌂ Volver al Inicio</button>
+</div>
+
+<!-- PANTALLA 25: CUENTA REGRESIVA -->
+<div class="container hidden" id="scr-countdown" style="display:none;align-items:center;justify-content:center;min-height:100vh;background:#0d1117;">
+    <div id="countdownDisplay" style="font-size:8rem;font-weight:bold;color:#58a6ff;font-family:monospace;text-align:center;text-shadow:0 0 40px rgba(88,166,255,0.6);transition:transform 0.15s ease,opacity 0.15s ease;"></div>
+</div>
+
+<!-- PANTALLA 26: GRACIAS -->
+<div class="container hidden" id="scr-thanks">
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;text-align:center;padding:20px;">
+        <div style="font-size:4rem;margin-bottom:20px;">🧠✨</div>
+        <h1 style="font-size:1.8rem;margin-bottom:12px;color:#58a6ff;">¡Gracias por la práctica!</h1>
+        <p style="font-size:0.9rem;color:var(--gray);line-height:1.8;max-width:320px;margin:0 0 30px;">La constancia en la práctica es clave para desarrollar la percepción extrasensorial. Cada sesión cuenta.</p>
+        <div style="background:rgba(31,111,235,0.08);border:1px solid rgba(31,111,235,0.3);border-radius:14px;padding:20px;width:100%;max-width:320px;margin-bottom:30px;">
+            <div style="font-size:0.65rem;font-weight:bold;color:#58a6ff;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;">Zener Test · INTG City</div>
+            <p style="font-size:0.78rem;color:var(--gray);line-height:1.6;margin:0;">Desarrollado para explorar los límites de la percepción humana, basado en el protocolo del Dr. J.B. Rhine (1934).</p>
+        </div>
+        <button class="btn-primary" onclick="showSetup()" style="width:100%;max-width:320px;">⌂ Volver al Inicio</button>
+    </div>
+    <div style="text-align:right;margin-top:18px;font-size:0.6rem;color:rgba(255,255,255,0.18);letter-spacing:0.5px;font-style:italic;">Desarrollado por @ARSifuentes</div>
+</div>
+
+<!-- PANTALLA 27: REPORTE INDIVIDUAL DESDE RANKING -->
+<div class="container hidden" id="scr-ranking-detail">
+    <h1 id="rankingDetailTitle">Reporte Individual</h1>
+    <div class="subtitle" id="rankingDetailSubtitle"></div>
+    <canvas id="cnvRankingDetail"></canvas>
+    <button class="btn-primary" style="margin-top:16px;" onclick="downloadRankingDetail()">↓ Descargar PNG</button>
+    <button class="btn-outline" onclick="showSyncRanking()" style="margin-top:10px;">← Regresar al Ranking</button>
 </div>
 
 <script>
@@ -945,7 +976,7 @@ function getAutoHistory(){try{return JSON.parse(localStorage.getItem('zener_hist
 function saveAutoHistory(h){try{localStorage.setItem('zener_history_auto',JSON.stringify(h));}catch(e){showToast('Almacenamiento no disponible en este navegador','#f85149');}}
 
 // ── NAVIGATION ─────────────────────────────────────────────────────────────
-const ALL=['scr-setup','scr-test','scr-final-notes','scr-report','scr-history','scr-history-auto','scr-sess-report','scr-help','scr-party-lobby','scr-party-host','scr-party-guest','scr-party-session','scr-party-host-session','scr-sync','scr-sync-local-config','scr-sync-session','scr-sync-final','scr-sync-report','scr-sync-host','scr-sync-guest','scr-sync-online-session','scr-sync-host-session','scr-sync-guest-final','scr-sync-guest-report','scr-sync-ranking'];
+const ALL=['scr-setup','scr-test','scr-final-notes','scr-report','scr-history','scr-history-auto','scr-sess-report','scr-help','scr-party-lobby','scr-party-host','scr-party-guest','scr-party-session','scr-party-host-session','scr-sync','scr-sync-local-config','scr-sync-session','scr-sync-final','scr-sync-report','scr-sync-host','scr-sync-guest','scr-sync-online-session','scr-sync-host-session','scr-sync-guest-final','scr-sync-guest-report','scr-sync-ranking','scr-countdown','scr-thanks','scr-ranking-detail'];
 function hideAll(){ALL.forEach(id=>document.getElementById(id).classList.add('hidden'));}
 function updateAutoHistoryBtn(){
     const btn=document.getElementById('btnAutoHistory');
@@ -956,11 +987,9 @@ function showSetup(){
     updateAutoHistoryBtn();
 }
 function showSetupWithThanks(){
-    showConfirm(
-        '¡Gracias por la práctica! 🧠',
-        'Tus datos han sido guardados. Recuerda: la constancia en la práctica es clave para desarrollar la percepción extrasensorial.\n\n¿Deseas volver al inicio?',
-        function(){ showSetup(); }
-    );
+    hideAll();
+    document.getElementById('scr-thanks').classList.remove('hidden');
+    window.scrollTo(0,0);
 }
 function showHistory(){
     hideAll();document.getElementById('scr-history').classList.remove('hidden');
@@ -1013,37 +1042,154 @@ function resetApp(){
     window.scrollTo(0,0);
 }
 
-// ── AUTO TEST SESSION FLOW ─────────────────────────────────────────────────
+// ── AUDIO ENGINE ──────────────────────────────────────────────────────────
+function createAudioCtx(){
+    try{ return new (window.AudioContext||window.webkitAudioContext)(); }
+    catch(e){ return null; }
+}
+
+function playCountdownBeep(freq, duration){
+    const ac=createAudioCtx(); if(!ac) return;
+    const osc=ac.createOscillator();
+    const gain=ac.createGain();
+    osc.connect(gain); gain.connect(ac.destination);
+    osc.type='sine';
+    osc.frequency.setValueAtTime(freq, ac.currentTime);
+    gain.gain.setValueAtTime(0.4, ac.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime+duration);
+    osc.start(ac.currentTime);
+    osc.stop(ac.currentTime+duration);
+}
+
+function playAchievementSound(){
+    const ac=createAudioCtx(); if(!ac) return;
+    // Rising arpeggio: C5 E5 G5 C6 — "achievement" feel
+    const notes=[523,659,784,1047];
+    notes.forEach(function(freq,i){
+        const osc=ac.createOscillator();
+        const gain=ac.createGain();
+        osc.connect(gain); gain.connect(ac.destination);
+        osc.type='sine';
+        osc.frequency.setValueAtTime(freq, ac.currentTime+i*0.12);
+        gain.gain.setValueAtTime(0, ac.currentTime+i*0.12);
+        gain.gain.linearRampToValueAtTime(0.35, ac.currentTime+i*0.12+0.05);
+        gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime+i*0.12+0.4);
+        osc.start(ac.currentTime+i*0.12);
+        osc.stop(ac.currentTime+i*0.12+0.5);
+    });
+    // Sparkle layer
+    setTimeout(function(){
+        const osc2=ac.createOscillator();
+        const g2=ac.createGain();
+        osc2.connect(g2); g2.connect(ac.destination);
+        osc2.type='triangle';
+        osc2.frequency.setValueAtTime(1568, ac.currentTime);
+        g2.gain.setValueAtTime(0.2, ac.currentTime);
+        g2.gain.exponentialRampToValueAtTime(0.001, ac.currentTime+0.6);
+        osc2.start(ac.currentTime);
+        osc2.stop(ac.currentTime+0.6);
+    }, 480);
+}
+
+// ── COUNTDOWN + SESSION START ──────────────────────────────────────────────
+function startCountdown(onDone){
+    hideAll();
+    const scrC=document.getElementById('scr-countdown');
+    scrC.classList.remove('hidden');
+    scrC.style.display='flex';
+    const disp=document.getElementById('countdownDisplay');
+    const counts=['3','2','1','¡YA!'];
+    const freqs=[330,392,523,659];
+    let idx=0;
+    function tick(){
+        if(idx>=counts.length){
+            scrC.style.display='none';
+            scrC.classList.add('hidden');
+            onDone();
+            return;
+        }
+        disp.textContent=counts[idx];
+        disp.style.transform='scale(1.3)';
+        disp.style.opacity='1';
+        playCountdownBeep(freqs[idx], 0.35);
+        setTimeout(function(){
+            disp.style.transform='scale(1)';
+            disp.style.opacity='0.6';
+        },200);
+        idx++;
+        setTimeout(tick, idx<counts.length?900:500);
+    }
+    tick();
+}
+
+// ── HISTORY PICKER ─────────────────────────────────────────────────────────
+function showHistoryPicker(){
+    showConfirm(
+        'Ver Historial',
+        '¿Qué historial deseas ver?',
+        function(){ showHistory(); }
+    );
+    // Hack: replace confirm button text and add second option
+    setTimeout(function(){
+        const modal=document.getElementById('confirmModal');
+        if(!modal) return;
+        const yesBtn=document.getElementById('confirmYes');
+        const noBtn=document.getElementById('confirmNo');
+        if(yesBtn) yesBtn.textContent='Historial Local';
+        if(noBtn){ noBtn.textContent='Historial Online'; noBtn.style.color='#3fb950'; noBtn.style.borderColor='#3fb950'; }
+        noBtn.onclick=function(){ modal.remove(); showOnlineHistory(); };
+    },10);
+}
+
+function showOnlineHistory(){
+    // Online history = sessions with type 'sync-online' or from Firestore
+    // For now, filter from local history those with type='sync-local'
+    // and show a message if not logged in
+    if(!currentUser){
+        showToast('Inicia sesión con Google para ver el historial Online','#f85149');
+        return;
+    }
+    // Load cloud history and show it in the existing history screen with a filter
+    showHistory();
+    showToast('Mostrando historial de la nube ✓','#58a6ff');
+}
+
+// ── UPDATED startSession WITH COUNTDOWN ────────────────────────────────────
 function startSession(){
-    // Auto Test always uses blind mode
     isBlind=true;
     colorLevel=parseInt(document.getElementById('inColorLevel').value);
     totalCards=parseInt(document.getElementById('inTotalCards').value);
-    hideAll();document.getElementById('scr-test').classList.remove('hidden');
-    document.querySelector('.stats-hud').style.visibility='hidden';
     deck=[];
     for(let i=0;i<totalCards/5;i++){
-        SYMBOLS.forEach(s=>{
+        SYMBOLS.forEach(function(s){
             let c='#000000';
-            if(colorLevel===2)c=s.c;
-            if(colorLevel===3)c=COLORS[Math.floor(Math.random()*COLORS.length)];
-            deck.push({...s,renderColor:c});
+            if(colorLevel===2) c=s.c;
+            if(colorLevel===3) c=COLORS[Math.floor(Math.random()*COLORS.length)];
+            deck.push(Object.assign({},s,{renderColor:c}));
         });
     }
     fisherYates(deck);
-    const grid=document.getElementById('uiOptionsGrid');
-    grid.innerHTML='';
-    SYMBOLS.forEach(s=>{
-        const btn=document.createElement('div');btn.className='opt-btn';
-        const dc=colorLevel===1?'#000000':s.c;
-        const isWav=s.id==='wav';
-        const shadowOpacity=isWav&&dc!=='#000000'?0.22:0.65;
-        const svgContent=`<svg viewBox="0 0 100 100" stroke="${dc}" style="filter:drop-shadow(0 0 2px rgba(255,255,255,${shadowOpacity}))">${SVGS[s.id]}</svg>`;
-        btn.innerHTML=`${svgContent}<span>${s.n}</span>`;
-        btn.onclick=()=>{logs.push(s.id);updateStats();step++;if(step<totalCards)drawStep();else goToFinalNotes();};
-        grid.appendChild(btn);
+    startCountdown(function(){
+        hideAll();
+        document.getElementById('scr-test').classList.remove('hidden');
+        document.querySelector('.stats-hud').style.visibility='hidden';
+        const grid=document.getElementById('uiOptionsGrid');
+        grid.innerHTML='';
+        SYMBOLS.forEach(function(s){
+            const btn=document.createElement('div'); btn.className='opt-btn';
+            const dc=colorLevel===1?'#000000':s.c;
+            const isWav=s.id==='wav';
+            const shadowOpacity=isWav&&dc!=='#000000'?0.22:0.65;
+            btn.innerHTML='<svg viewBox="0 0 100 100" stroke="'+dc+'" style="filter:drop-shadow(0 0 2px rgba(255,255,255,'+shadowOpacity+'))">'+SVGS[s.id]+'</svg><span>'+s.n+'</span>';
+            btn.onclick=function(){
+                logs.push(s.id); updateStats(); step++;
+                if(step<totalCards) drawStep();
+                else { playAchievementSound(); goToFinalNotes(); }
+            };
+            grid.appendChild(btn);
+        });
+        drawStep();
     });
-    drawStep();
 }
 function drawStep(){
     document.getElementById('uiStep').innerText=`CARTA ${String(step+1).padStart(2,'0')} / ${totalCards}`;
@@ -2201,17 +2347,20 @@ function startSyncLocal(){
     fisherYates(syncDeck);
     syncStep=0;
     sessionMode='sync-local';
-    hideAll();
-    document.getElementById('scr-sync-session').classList.remove('hidden');
     // Reset completion notice
     const navBtns=document.getElementById('syncNavButtons');
-    const notice=document.getElementById('syncCompletionNotice');
-    const cardSlot=document.getElementById('syncCardSlot');
+    const noticeEl=document.getElementById('syncCompletionNotice');
+    const cardSlotEl=document.getElementById('syncCardSlot');
     if(navBtns) navBtns.style.display='';
-    if(notice) notice.style.display='none';
-    if(cardSlot) cardSlot.style.display='';
-    drawSyncStep();
-    window.scrollTo(0,0);
+    if(noticeEl) noticeEl.style.display='none';
+    if(cardSlotEl) cardSlotEl.style.display='';
+
+    startCountdown(function(){
+        hideAll();
+        document.getElementById('scr-sync-session').classList.remove('hidden');
+        drawSyncStep();
+        window.scrollTo(0,0);
+    });
 }
 
 function drawSyncStep(){
@@ -2284,6 +2433,8 @@ function syncNextCard(){
     if(!allAnswered){showToast('Todos los participantes deben responder antes de continuar','#f85149');return;}
     syncStep++;
     if(syncStep>=syncDeck.length){
+        // Play achievement sound
+        playAchievementSound();
         // Show completion notice instead of jumping abruptly
         const navBtns=document.getElementById('syncNavButtons');
         const notice=document.getElementById('syncCompletionNotice');
@@ -2526,6 +2677,16 @@ function confirmJoinSync(){
         const statusRef=rtdb.ref('sync/'+syncRoomId+'/status');
         const offStatus=statusRef.on('value',function(snap){
             const status=snap.val();
+            if(status==='countdown'){
+                rtdb.ref('sync/'+syncRoomId).once('value').then(function(roomSnap){
+                    const room=roomSnap.val();
+                    syncDeck=room.deck||[];
+                    // Show countdown on guest device too
+                    startCountdown(function(){
+                        // Will switch to active — listener will fire again
+                    });
+                });
+            }
             if(status==='active'){
                 rtdb.ref('sync/'+syncRoomId).once('value').then(function(roomSnap){
                     const room=roomSnap.val();
@@ -2543,11 +2704,11 @@ async function startSyncOnlineSession(){
     if(!rtdb||!syncRoomId) return;
     const totalCards=parseInt(document.getElementById('syncHostTotalCards').value);
     const colorLevel=parseInt(document.getElementById('syncHostColorLevel').value);
-    const blindGlobal=document.getElementById('syncHostBlind');
-    isBlind=blindGlobal?blindGlobal.checked:false;
+    const blindEl=document.getElementById('syncHostBlind');
+    isBlind=blindEl?blindEl.checked:false;
     syncDeck=[];
     for(let i=0;i<totalCards/5;i++){
-        SYMBOLS.forEach(s=>{
+        SYMBOLS.forEach(function(s){
             let c='#000000';
             if(colorLevel===2) c=s.c;
             if(colorLevel===3) c=COLORS[Math.floor(Math.random()*COLORS.length)];
@@ -2556,10 +2717,15 @@ async function startSyncOnlineSession(){
     }
     fisherYates(syncDeck);
     syncStep=0;
+    // Signal countdown to all, then start
     await rtdb.ref('sync/'+syncRoomId).update({
-        status:'active',totalCards,colorLevel,currentCard:0,deck:syncDeck
+        status:'countdown',
+        totalCards,colorLevel,currentCard:0,deck:syncDeck,blind:isBlind
     });
-    showSyncHostSession();
+    startCountdown(function(){
+        rtdb.ref('sync/'+syncRoomId).update({status:'active'});
+        showSyncHostSession();
+    });
 }
 
 function showSyncHostSession(){
@@ -2625,11 +2791,28 @@ function drawSyncHostCard(){
 }
 
 async function syncOnlineNextCard(){
+    if(!rtdb) return;
+    // Check if all participants answered before advancing
+    const snap=await rtdb.ref('sync/'+syncRoomId+'/members').once('value');
+    const members=snap.val()||{};
+    const memberList=Object.values(members).filter(function(m){return m&&m.name;});
+    const pending=memberList.filter(function(m){return !(m.answers&&m.answers[syncStep]);});
+
+    if(pending.length>0){
+        // Show warning and force button — don't advance
+        const warn=document.getElementById('syncPendingWarning');
+        const forceBtn=document.getElementById('syncHostForceBtn');
+        if(warn) warn.style.display='block';
+        if(forceBtn) forceBtn.style.display='block';
+        showToast(pending.length+' participante(s) aún no han respondido','#f85149');
+        return;
+    }
+
     if(syncStep>=syncDeck.length-1){endSyncOnlineSession();return;}
     syncStep++;
     await rtdb.ref('sync/'+syncRoomId).update({currentCard:syncStep});
     drawSyncHostCard();
-    // Reset warning
+    // Hide warning/force after successful advance
     const warn=document.getElementById('syncPendingWarning');
     const forceBtn=document.getElementById('syncHostForceBtn');
     if(warn) warn.style.display='none';
@@ -2721,6 +2904,16 @@ function startSyncGuestSession(room, guestName){
             // Re-enable grid for new card
             if(gridEl) gridEl.style.opacity='1';
             if(waitEl) waitEl.style.display='none';
+            // Card flip animation for guest (card is always ?)
+            const guestSlot=document.querySelector('#scr-sync-online-session .card-display');
+            if(guestSlot){
+                guestSlot.style.transition='transform 0.3s ease';
+                guestSlot.style.transform='rotateY(90deg)';
+                setTimeout(function(){
+                    guestSlot.innerHTML='<div class="hidden-mark">?</div>';
+                    guestSlot.style.transform='rotateY(0deg)';
+                },300);
+            }
         }
     });
     syncListeners.push(function(){cardRef.off('value',offCard);});
@@ -2801,17 +2994,19 @@ function downloadGuestReport(){
     downloadPNG('cnvSyncGuestReport', syncGuestDisplayName||'participante');
 }
 
+let rankingParticipants=[]; // stored for detail view
+let rankingDetailIdx=0;
+
 function showSyncRanking(){
     hideAll();
     document.getElementById('scr-sync-ranking').classList.remove('hidden');
     document.getElementById('syncRankingSubtitle').textContent='Sesión INTG Sync — '+new Date().toLocaleDateString('es-MX');
     const content=document.getElementById('syncRankingContent');
-    // Build participant results from syncOnlineResults or syncLogs
-    let participants=[];
+    rankingParticipants=[];
+
+    // Build participant results
     if(syncRole==='host'&&Object.keys(syncOnlineResults).length>0){
-        // Online session
-        const members=syncOnlineResults;
-        Object.values(members).filter(function(m){return m&&m.name;}).forEach(function(m){
+        Object.values(syncOnlineResults).filter(function(m){return m&&m.name;}).forEach(function(m){
             const answers=m.answers||{};
             const logs=syncDeck.map(function(_,i){return answers[i]||null;});
             let d=0,pv=0,ps=0,skipped=0;
@@ -2821,10 +3016,9 @@ function showSyncRanking(){
                 if(i+1<logs.length&&syncDeck[i+1]&&ans===syncDeck[i+1].id) pv++;
                 if(i>0&&syncDeck[i-1]&&ans===syncDeck[i-1].id) ps++;
             });
-            participants.push({name:m.name,d,p:pv,ps,skipped,total:syncDeck.length});
+            rankingParticipants.push({name:m.name,d,p:pv,ps,skipped,total:syncDeck.length,logs,isEmisor:false});
         });
     } else if(syncParticipants.length>0){
-        // Local session
         syncParticipants.forEach(function(p){
             const logs=syncLogs[p.name]||[];
             let d=0,pv=0,ps=0;
@@ -2834,38 +3028,38 @@ function showSyncRanking(){
                 if(i+1<logs.length&&syncDeck[i+1]&&ans===syncDeck[i+1].id) pv++;
                 if(i>0&&syncDeck[i-1]&&ans===syncDeck[i-1].id) ps++;
             });
-            participants.push({name:p.name,isEmisor:p.isEmisor,d,p:pv,ps,skipped:0,total:syncDeck.length});
+            rankingParticipants.push({name:p.name,isEmisor:p.isEmisor,d,p:pv,ps,skipped:0,total:syncDeck.length,logs});
         });
     }
-    // Sort by direct hits descending
-    participants.sort(function(a,b){return b.d-a.d;});
+
+    rankingParticipants.sort(function(a,b){return b.d-a.d;});
     const medals=['🥇','🥈','🥉'];
-    let html='<div style="margin-bottom:20px;">';
-    // Summary stats grid
+    let html='<div>';
+    // Summary
     html+='<div style="background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:16px;">';
     html+='<div style="font-size:0.65rem;font-weight:bold;color:#58a6ff;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;">📊 Resumen de la Sesión</div>';
     html+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;text-align:center;">';
-    html+='<div><div style="font-size:0.6rem;color:var(--gray);">PARTICIPANTES</div><div style="font-size:1.4rem;font-weight:bold;color:var(--white);">'+participants.length+'</div></div>';
+    html+='<div><div style="font-size:0.6rem;color:var(--gray);">PARTICIPANTES</div><div style="font-size:1.4rem;font-weight:bold;color:var(--white);">'+rankingParticipants.length+'</div></div>';
     html+='<div><div style="font-size:0.6rem;color:var(--gray);">CARTAS</div><div style="font-size:1.4rem;font-weight:bold;color:var(--white);">'+(syncDeck.length||25)+'</div></div>';
-    const topD=participants.length>0?participants[0].d:0;
+    const topD=rankingParticipants.length>0?rankingParticipants[0].d:0;
     html+='<div><div style="font-size:0.6rem;color:var(--gray);">MÁXIMO</div><div style="font-size:1.4rem;font-weight:bold;color:#3fb950;">'+topD+'</div></div>';
     html+='</div></div>';
-    // Ranking list
-    html+='<div style="font-size:0.65rem;font-weight:bold;color:#58a6ff;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">🏆 Ranking de Aciertos</div>';
-    participants.forEach(function(p,i){
+
+    html+='<div style="font-size:0.65rem;font-weight:bold;color:#58a6ff;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">🏆 Ranking — toca para ver reporte completo</div>';
+
+    rankingParticipants.forEach(function(p,i){
         const pct=Math.round((p.d/p.total)*100);
-        const medal=medals[i]||'';
-        const isEmisor=p.isEmisor;
-        html+='<div style="background:rgba(0,0,0,0.3);border:1px solid '+(i===0?'var(--accent)':'var(--border)')+';border-radius:12px;padding:14px 16px;margin-bottom:10px;">';
+        const medal=medals[i]||(''+( i+1)+'°');
+        html+='<div onclick="showRankingDetail('+i+')" style="background:rgba(0,0,0,0.3);border:1px solid '+(i===0?'var(--accent)':'var(--border)')+';border-radius:12px;padding:14px 16px;margin-bottom:10px;cursor:pointer;transition:border-color 0.2s;" onmouseover="this.style.borderColor=\'#58a6ff\'" onmouseout="this.style.borderColor=\''+(i===0?'var(--accent)':'var(--border)')+'\'">';
         html+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">';
         html+='<div style="display:flex;align-items:center;gap:10px;">';
         html+='<span style="font-size:1.4rem;">'+medal+'</span>';
-        html+='<div><div style="font-weight:bold;color:var(--white);font-size:0.9rem;">'+(isEmisor?'⚡ ':'')+p.name+'</div>';
-        if(isEmisor) html+='<div style="font-size:0.6rem;color:#58a6ff;">EMISOR / OPERADOR</div>';
+        html+='<div><div style="font-weight:bold;color:var(--white);font-size:0.9rem;">'+(p.isEmisor?'⚡ ':'')+p.name+'</div>';
+        if(p.isEmisor) html+='<div style="font-size:0.6rem;color:#58a6ff;">EMISOR / OPERADOR</div>';
+        html+='<div style="font-size:0.6rem;color:#58a6ff;margin-top:2px;">Toca para ver reporte →</div>';
         html+='</div></div>';
         html+='<div style="text-align:right;"><div style="font-size:1.6rem;font-weight:bold;color:#3fb950;">'+p.d+'</div><div style="font-size:0.6rem;color:var(--gray);">'+pct+'% DIRECTO</div></div>';
         html+='</div>';
-        // Mini stats bar
         html+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;font-size:0.7rem;text-align:center;">';
         html+='<div style="background:rgba(63,185,80,0.1);border-radius:6px;padding:4px;"><div style="color:#3fb950;font-weight:bold;">'+p.d+'</div><div style="color:var(--gray);">Directos</div></div>';
         html+='<div style="background:rgba(88,166,255,0.1);border-radius:6px;padding:4px;"><div style="color:#58a6ff;font-weight:bold;">'+p.p+'</div><div style="color:var(--gray);">Precog.</div></div>';
@@ -2876,7 +3070,86 @@ function showSyncRanking(){
     });
     html+='</div>';
     content.innerHTML=html;
+
+    // Build summary canvas for download
+    buildRankingCanvas();
     window.scrollTo(0,0);
+}
+
+function showRankingDetail(idx){
+    rankingDetailIdx=idx;
+    const p=rankingParticipants[idx];
+    if(!p) return;
+    const deckArr=syncDeck.map(function(d){return {id:d.id,renderColor:d.renderColor};});
+    const logs=p.logs||[];
+    let d=p.d, pv=p.p, ps=p.ps;
+    const cnv=document.getElementById('cnvRankingDetail');
+    const ctx=cnv.getContext('2d');
+    buildReport(ctx,cnv,{
+        emisor:syncEmisorName||'Emisor',
+        receptor:p.name+(p.isEmisor?' — EMISOR/OPERADOR':''),
+        obsNotes:'Sesión INTG Sync · '+new Date().toLocaleDateString('es-MX'),
+        finNotes:'',
+        d,p:pv,ps,
+        totalCards:syncDeck.length,
+        colorLevel:1,
+        dateStr:new Date().toLocaleDateString('es-MX'),
+        timeStr:new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),
+        sessId:null,seqNum:null,
+        logsArr:logs,
+        deckArr,
+        streaks:computeStreaks(logs,deckArr,syncDeck.length)
+    });
+    document.getElementById('rankingDetailTitle').textContent=p.name;
+    document.getElementById('rankingDetailSubtitle').textContent=(p.isEmisor?'Emisor / Operador':'Receptor')+' · '+Math.round((d/syncDeck.length)*100)+'% Aciertos';
+    hideAll();
+    document.getElementById('scr-ranking-detail').classList.remove('hidden');
+    window.scrollTo(0,0);
+}
+
+function downloadRankingDetail(){
+    const p=rankingParticipants[rankingDetailIdx];
+    downloadPNG('cnvRankingDetail', p?p.name:'participante');
+}
+
+function buildRankingCanvas(){
+    const cnv=document.getElementById('cnvRankingSummary');
+    if(!cnv||rankingParticipants.length===0) return;
+    const ctx=cnv.getContext('2d');
+    const rowH=60, headerH=80, footerH=40;
+    cnv.width=800;
+    cnv.height=headerH+(rankingParticipants.length*rowH)+footerH;
+    // Background
+    ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,cnv.width,cnv.height);
+    ctx.fillStyle='#1f6feb'; ctx.fillRect(0,0,15,cnv.height);
+    // Header
+    ctx.fillStyle='#0d1117'; ctx.font='bold 32px Arial'; ctx.textAlign='center';
+    ctx.fillText('INTG SYNC — RESULTADOS GRUPALES',400,44);
+    ctx.font='14px Arial'; ctx.fillStyle='#8b949e';
+    ctx.fillText(new Date().toLocaleDateString('es-MX')+' · '+rankingParticipants.length+' participantes · '+syncDeck.length+' cartas',400,70);
+    // Rows
+    const medals=['🥇','🥈','🥉'];
+    rankingParticipants.forEach(function(p,i){
+        const y=headerH+(i*rowH);
+        ctx.fillStyle=i%2===0?'#f8f9fb':'#eef0f3';
+        ctx.fillRect(20,y,760,rowH-4);
+        ctx.fillStyle='#111'; ctx.font='bold 18px Arial'; ctx.textAlign='left';
+        ctx.fillText((medals[i]||((i+1)+'°'))+' '+p.name+(p.isEmisor?' (Emisor)':''), 36, y+22);
+        ctx.font='13px Arial'; ctx.fillStyle='#555';
+        const pct=Math.round((p.d/p.total)*100);
+        ctx.fillText('Directos: '+p.d+' ('+pct+'%)   Precog: '+p.p+'   Postcog: '+p.ps,36,y+44);
+        ctx.textAlign='right'; ctx.font='bold 24px Arial'; ctx.fillStyle='#1a7f37';
+        ctx.fillText(p.d, 770, y+30);
+    });
+    // Footer
+    ctx.fillStyle='#8b949e'; ctx.font='11px Arial'; ctx.textAlign='right';
+    ctx.fillText('Desarrollado por @ARSifuentes · Zener Test INTG City',790,cnv.height-12);
+    cnv.style.display='block';
+}
+
+function downloadRankingSummary(){
+    buildRankingCanvas();
+    downloadPNG('cnvRankingSummary','INTG-Sync-Ranking');
 }
 
 function cancelSyncRoom(){
