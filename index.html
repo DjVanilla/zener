@@ -667,6 +667,7 @@
     </div>
 
     <button class="btn-outline" onclick="saveSyncSession()" id="btnSyncSave" style="margin-top:10px;">Guardar Sesión en Historial</button>
+    <button class="btn-outline" onclick="showSyncRanking()" style="margin-top:8px;border-color:#3fb950;color:#3fb950;">🏆 Ver Ranking de Resultados</button>
     <button class="btn-outline" onclick="resetApp()" style="margin-top:8px;">Nueva Sesión</button>
 </div>
 
@@ -744,16 +745,29 @@
 
 <!-- PANTALLA 20: INTG SYNC ONLINE — SESIÓN RECEPTOR -->
 <div class="container hidden" id="scr-sync-online-session">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
         <span id="syncOnlineStep" style="font-weight:bold;color:var(--text);font-family:monospace;letter-spacing:1px;">CARTA 01 / 25</span>
         <span id="syncOnlineRoomTag" style="font-size:0.65rem;color:var(--gray);"></span>
     </div>
+    <!-- Participant name -->
+    <div id="syncOnlineParticipantName" style="font-size:0.72rem;color:#58a6ff;font-weight:bold;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;text-align:center;"></div>
+    <!-- Card always hidden -->
     <div class="card-display"><div class="hidden-mark">?</div></div>
+    <!-- Perception label -->
+    <div style="text-align:center;font-size:0.8rem;color:var(--gray);font-style:italic;margin:10px 0 6px;">¿Qué figura percibes?</div>
     <div class="options-grid" id="syncOnlineGrid"></div>
-    <div class="stats-hud">
-        <div class="stat-item"><span class="stat-lbl">DIRECTO</span><span id="syncVDir" class="stat-val">0</span></div>
-        <div class="stat-item"><span class="stat-lbl">PRECOGNICIÓN</span><span id="syncVPre" class="stat-val">0</span></div>
-        <div class="stat-item"><span class="stat-lbl">POSTCOGNICIÓN</span><span id="syncVPos" class="stat-val">0</span></div>
+    <!-- Waiting message shown after answering -->
+    <div id="syncOnlineWaiting" style="display:none;margin-top:16px;background:rgba(31,111,235,0.08);border:1px solid rgba(31,111,235,0.3);border-radius:12px;padding:16px;text-align:center;">
+        <div style="font-size:1.2rem;margin-bottom:8px;">⏳</div>
+        <div style="font-size:0.85rem;color:var(--white);font-weight:bold;">Respuesta registrada ✓</div>
+        <div style="font-size:0.75rem;color:var(--gray);margin-top:4px;">Esperando siguiente carta...</div>
+    </div>
+    <!-- Session ended notice for guest -->
+    <div id="syncOnlineEndedNotice" style="display:none;margin-top:16px;background:rgba(31,111,235,0.1);border:2px solid var(--accent);border-radius:16px;padding:24px;text-align:center;">
+        <div style="font-size:2rem;margin-bottom:12px;">🧠</div>
+        <div style="font-size:1rem;font-weight:bold;color:var(--white);margin-bottom:8px;">¡Sesión completada!</div>
+        <p style="font-size:0.8rem;color:var(--gray);line-height:1.6;margin:0 0 20px;">Todas las cartas han sido procesadas. Continúa para ver tus observaciones y reporte individual.</p>
+        <button class="btn-primary" onclick="goToSyncGuestFinalNotes()" style="width:100%;">Continuar → Mis Observaciones</button>
     </div>
 </div>
 
@@ -767,9 +781,43 @@
     <div class="config-card" style="margin:14px 0;">
         <div style="font-size:0.65rem;font-weight:bold;color:#58a6ff;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Respuestas en tiempo real</div>
         <div id="syncLiveResponses" style="font-size:0.8rem;color:var(--gray);min-height:30px;">Esperando respuestas...</div>
+        <div id="syncPendingWarning" style="display:none;margin-top:10px;font-size:0.72rem;color:#f85149;background:rgba(248,81,73,0.08);border:1px solid rgba(248,81,73,0.3);border-radius:8px;padding:8px 12px;">
+            ⚠ Hay participantes que no han respondido. Puedes esperar o forzar avance (se marcará como omisión).
+        </div>
     </div>
     <button onclick="syncOnlineNextCard()" id="syncHostNextBtn" class="btn-primary">Siguiente Carta →</button>
+    <button onclick="forceNextSyncCard()" id="syncHostForceBtn" style="display:none;margin-top:8px;background:transparent;border:1px solid var(--danger);color:var(--danger);padding:12px;border-radius:10px;width:100%;cursor:pointer;font-size:0.8rem;font-weight:bold;-webkit-appearance:none;appearance:none;">⚡ Forzar avance (omitir sin respuesta)</button>
     <button onclick="endSyncOnlineSession()" class="btn-outline" style="margin-top:10px;color:var(--danger);border-color:var(--danger);">Terminar Sesión</button>
+</div>
+
+<!-- PANTALLA 22: INTG SYNC ONLINE — OBSERVACIONES FINAL (RECEPTOR) -->
+<div class="container hidden" id="scr-sync-guest-final">
+    <h1>Mis Observaciones</h1>
+    <div class="subtitle" id="syncGuestFinalSubtitle">INTG Sync</div>
+    <div class="config-card">
+        <div class="input-group">
+            <label>¿Cómo te sentiste durante la sesión?</label>
+            <textarea id="syncGuestFinalNotes" placeholder="Describe sensaciones, percepciones o comentarios personales..."></textarea>
+        </div>
+    </div>
+    <button class="btn-primary" onclick="processSyncGuestReport()">Generar Mi Reporte</button>
+</div>
+
+<!-- PANTALLA 23: INTG SYNC ONLINE — REPORTE RECEPTOR -->
+<div class="container hidden" id="scr-sync-guest-report">
+    <h1>Mi Reporte</h1>
+    <div class="subtitle" id="syncGuestReportSubtitle">INTG Sync</div>
+    <canvas id="cnvSyncGuestReport"></canvas>
+    <button class="btn-primary" style="margin-top:16px;" onclick="downloadGuestReport()">↓ Descargar Reporte</button>
+    <button class="btn-outline" onclick="showSetupWithThanks()" style="margin-top:10px;border-color:#1f6feb;color:#58a6ff;">⌂ Volver al Inicio</button>
+</div>
+
+<!-- PANTALLA 24: INTG SYNC — RANKING FINAL -->
+<div class="container hidden" id="scr-sync-ranking">
+    <h1>Resultados Grupales</h1>
+    <div class="subtitle" id="syncRankingSubtitle">INTG Sync</div>
+    <div id="syncRankingContent" style="margin-bottom:16px;"></div>
+    <button class="btn-outline" onclick="showSetupWithThanks()" style="margin-top:10px;border-color:#1f6feb;color:#58a6ff;">⌂ Volver al Inicio</button>
 </div>
 
 <script>
@@ -801,6 +849,9 @@ let syncRoomId=null;
 let syncRole=null;       // 'host' | 'guest'
 let syncListeners=[];
 let syncActiveParticipant=0; // index for report tabs
+let syncGuestUid=null;       // persistent uid for guest across functions
+let syncGuestDisplayName=''; // guest name stored for use during session
+let syncOnlineResults={};    // {uid: {name, answers:[]}} accumulated for end-of-session report
 let sessionMode='auto'; // 'auto' | 'sync-local' | 'sync-online-host' | 'sync-online-guest'
 
 // ── MODE SELECTOR ──────────────────────────────────────────────────────────
@@ -894,7 +945,7 @@ function getAutoHistory(){try{return JSON.parse(localStorage.getItem('zener_hist
 function saveAutoHistory(h){try{localStorage.setItem('zener_history_auto',JSON.stringify(h));}catch(e){showToast('Almacenamiento no disponible en este navegador','#f85149');}}
 
 // ── NAVIGATION ─────────────────────────────────────────────────────────────
-const ALL=['scr-setup','scr-test','scr-final-notes','scr-report','scr-history','scr-history-auto','scr-sess-report','scr-help','scr-party-lobby','scr-party-host','scr-party-guest','scr-party-session','scr-party-host-session','scr-sync','scr-sync-local-config','scr-sync-session','scr-sync-final','scr-sync-report','scr-sync-host','scr-sync-guest','scr-sync-online-session','scr-sync-host-session'];
+const ALL=['scr-setup','scr-test','scr-final-notes','scr-report','scr-history','scr-history-auto','scr-sess-report','scr-help','scr-party-lobby','scr-party-host','scr-party-guest','scr-party-session','scr-party-host-session','scr-sync','scr-sync-local-config','scr-sync-session','scr-sync-final','scr-sync-report','scr-sync-host','scr-sync-guest','scr-sync-online-session','scr-sync-host-session','scr-sync-guest-final','scr-sync-guest-report','scr-sync-ranking'];
 function hideAll(){ALL.forEach(id=>document.getElementById(id).classList.add('hidden'));}
 function updateAutoHistoryBtn(){
     const btn=document.getElementById('btnAutoHistory');
@@ -903,6 +954,13 @@ function updateAutoHistoryBtn(){
 function showSetup(){
     hideAll();document.getElementById('scr-setup').classList.remove('hidden');
     updateAutoHistoryBtn();
+}
+function showSetupWithThanks(){
+    showConfirm(
+        '¡Gracias por la práctica! 🧠',
+        'Tus datos han sido guardados. Recuerda: la constancia en la práctica es clave para desarrollar la percepción extrasensorial.\n\n¿Deseas volver al inicio?',
+        function(){ showSetup(); }
+    );
 }
 function showHistory(){
     hideAll();document.getElementById('scr-history').classList.remove('hidden');
@@ -990,8 +1048,14 @@ function startSession(){
 function drawStep(){
     document.getElementById('uiStep').innerText=`CARTA ${String(step+1).padStart(2,'0')} / ${totalCards}`;
     const slot=document.getElementById('uiCardSlot');
-    if(isBlind)slot.innerHTML='<div class="hidden-mark">?</div>';
-    else{const card=deck[step];slot.innerHTML=`<svg viewBox="0 0 100 100" stroke="${card.renderColor}">${SVGS[card.id]}</svg>`;}
+    // Card flip animation
+    slot.style.transition='transform 0.3s ease';
+    slot.style.transform='rotateY(90deg)';
+    setTimeout(function(){
+        if(isBlind) slot.innerHTML='<div class="hidden-mark">?</div>';
+        else{const card=deck[step];slot.innerHTML=`<svg viewBox="0 0 100 100" stroke="${card.renderColor}">${SVGS[card.id]}</svg>`;}
+        slot.style.transform='rotateY(0deg)';
+    },300);
 }
 function updateStats(){
     let d=0,p=0,ps=0;
@@ -2154,12 +2218,18 @@ function drawSyncStep(){
     const card=syncDeck[syncStep];
     document.getElementById('syncStep').textContent='CARTA '+String(syncStep+1).padStart(2,'0')+' / '+syncDeck.length;
     const slot=document.getElementById('syncCardSlot');
-    if(isBlind){
-        slot.innerHTML='<div class="hidden-mark">?</div>';
-    } else {
-        slot.innerHTML=`<svg viewBox="0 0 100 100" stroke="${card.renderColor}">${SVGS[card.id]}</svg>`;
-    }
-    buildSyncResponseGrid();
+    // Card flip animation
+    slot.style.transition='transform 0.3s ease';
+    slot.style.transform='rotateY(90deg)';
+    setTimeout(function(){
+        if(isBlind){
+            slot.innerHTML='<div class="hidden-mark">?</div>';
+        } else {
+            slot.innerHTML='<svg viewBox="0 0 100 100" stroke="'+card.renderColor+'">'+SVGS[card.id]+'</svg>';
+        }
+        slot.style.transform='rotateY(0deg)';
+        buildSyncResponseGrid();
+    },300);
 }
 
 function buildSyncResponseGrid(){
@@ -2420,41 +2490,52 @@ function confirmJoinSync(){
     const guestName=nameInput||(user&&(user.displayName||user.email))||'Participante';
     if(!guestName){showToast('Ingresa tu nombre','#f85149');return;}
 
+    // Store uid persistently so startSyncGuestSession uses the same one
+    const uid=user?user.uid:('guest_'+Date.now()+'_'+Math.random().toString(36).slice(2,6));
+    syncGuestUid=uid;
+    syncGuestDisplayName=guestName;
+
     rtdb.ref('sync/'+syncRoomId).once('value').then(function(snap){
         if(!snap.exists()){showToast('Sala no encontrada','#f85149');return;}
-        const uid=user?user.uid:('guest_'+Date.now());
         return rtdb.ref('sync/'+syncRoomId+'/members/'+uid).set({
-            name:guestName,uid:uid,answers:{}
+            name:guestName, uid:uid, answers:{}
         });
     }).then(function(){
         // Hide form, show waiting
         document.getElementById('syncGuestWaiting').style.display='block';
-        document.querySelector('#scr-sync-guest .btn-primary').style.display='none';
-        document.getElementById('syncGuestName').style.display='none';
-        document.querySelector('#scr-sync-guest label') && (document.querySelector('#scr-sync-guest label').style.display='none');
-
-        // Listen for session start
-        const statusRef=rtdb.ref('sync/'+syncRoomId+'/status');
-        const offStatus=statusRef.on('value',function(snap){
-            if(snap.val()==='active'){
-                rtdb.ref('sync/'+syncRoomId).once('value').then(function(roomSnap){
-                    const room=roomSnap.val();
-                    syncDeck=room.deck||[];
-                    startSyncGuestSession(room, guestName);
-                });
-            }
-            if(snap.val()==='ended') endSyncGuestSession();
-        });
-        syncListeners.push(function(){statusRef.off('value',offStatus);});
+        const joinBtn=document.querySelector('#scr-sync-guest .btn-primary');
+        if(joinBtn) joinBtn.style.display='none';
+        const nameInp=document.getElementById('syncGuestName');
+        if(nameInp) nameInp.style.display='none';
+        const nudge=document.getElementById('syncLoginNudge');
+        if(nudge) nudge.style.display='none';
+        const nameLabel=document.querySelector('#scr-sync-guest .input-group label');
+        if(nameLabel) nameLabel.style.display='none';
 
         // Listen for members list
         const membersRef=rtdb.ref('sync/'+syncRoomId+'/members');
         const offM=membersRef.on('value',function(snap){
             const members=snap.val()||{};
             const el=document.getElementById('syncGuestMembersList');
-            if(el) el.innerHTML=Object.values(members).map(m=>'<div style="padding:3px 0;">● '+m.name+'</div>').join('');
+            if(el) el.innerHTML=Object.values(members).filter(function(m){return m&&m.name;})
+                .map(function(m){return '<div style="padding:3px 0;color:var(--white);">● '+m.name+'</div>';}).join('');
         });
         syncListeners.push(function(){membersRef.off('value',offM);});
+
+        // Listen for session start
+        const statusRef=rtdb.ref('sync/'+syncRoomId+'/status');
+        const offStatus=statusRef.on('value',function(snap){
+            const status=snap.val();
+            if(status==='active'){
+                rtdb.ref('sync/'+syncRoomId).once('value').then(function(roomSnap){
+                    const room=roomSnap.val();
+                    syncDeck=room.deck||[];
+                    startSyncGuestSession(room, guestName);
+                });
+            }
+            if(status==='ended') endSyncGuestSession();
+        });
+        syncListeners.push(function(){statusRef.off('value',offStatus);});
     }).catch(function(e){showToast('Error: '+e.message,'#f85149');});
 }
 
@@ -2485,18 +2566,39 @@ function showSyncHostSession(){
     hideAll();
     document.getElementById('scr-sync-host-session').classList.remove('hidden');
     drawSyncHostCard();
+    syncOnlineResults={};
     const answersRef=rtdb.ref('sync/'+syncRoomId+'/members');
     const offA=answersRef.on('value',function(snap){
         const members=snap.val()||{};
+        const memberList=Object.values(members).filter(function(m){return m&&m.name;});
         const el=document.getElementById('syncLiveResponses');
         if(!el) return;
-        const lines=Object.values(members).map(function(m){
+
+        // Build live responses display
+        const lines=memberList.map(function(m){
             const ans=m.answers&&m.answers[syncStep];
-            const sym=ans?SYMBOLS.find(s=>s.id===ans):null;
+            const sym=ans?SYMBOLS.find(function(s){return s.id===ans;}):null;
             const label=sym?sym.n:(ans||'...');
-            return '<div style="padding:3px 0;"><span style="color:var(--white);font-weight:bold;">'+m.name+'</span> <span style="color:var(--gray);">→</span> <span style="color:#58a6ff;">'+label+'</span></div>';
+            const answered=!!ans;
+            return '<div style="padding:4px 0;display:flex;justify-content:space-between;align-items:center;">'
+                +'<span style="color:var(--white);font-weight:bold;">'+m.name+'</span>'
+                +'<span style="color:'+(answered?'#3fb950':'var(--gray)')+';">'+(answered?'✓ '+label:'esperando...')+'</span>'
+                +'</div>';
         });
         el.innerHTML=lines.join('')||'Esperando respuestas...';
+
+        // Store results for end-of-session report
+        memberList.forEach(function(m){
+            if(!syncOnlineResults[m.uid||m.name]) syncOnlineResults[m.uid||m.name]={name:m.name,answers:{}};
+            if(m.answers) Object.assign(syncOnlineResults[m.uid||m.name].answers, m.answers);
+        });
+
+        // Check pending
+        const pending=memberList.filter(function(m){return !(m.answers&&m.answers[syncStep]);}).length;
+        const warn=document.getElementById('syncPendingWarning');
+        const forceBtn=document.getElementById('syncHostForceBtn');
+        if(warn) warn.style.display=pending>0?'block':'none';
+        if(forceBtn) forceBtn.style.display=pending>0?'block':'none';
     });
     syncListeners.push(function(){answersRef.off('value',offA);});
     window.scrollTo(0,0);
@@ -2506,7 +2608,18 @@ function drawSyncHostCard(){
     const card=syncDeck[syncStep];
     if(!card) return;
     document.getElementById('syncHostStep').textContent='CARTA '+String(syncStep+1).padStart(2,'0')+' / '+syncDeck.length;
-    document.getElementById('syncHostCard').innerHTML=`<svg viewBox="0 0 100 100" stroke="${card.renderColor}">${SVGS[card.id]}</svg>`;
+    const slot=document.getElementById('syncHostCard');
+    // Card flip animation
+    slot.style.transition='transform 0.3s ease';
+    slot.style.transform='rotateY(90deg)';
+    setTimeout(function(){
+        if(isBlind){
+            slot.innerHTML='<div class="hidden-mark">?</div>';
+        } else {
+            slot.innerHTML='<svg viewBox="0 0 100 100" stroke="'+card.renderColor+'">'+SVGS[card.id]+'</svg>';
+        }
+        slot.style.transform='rotateY(0deg)';
+    },300);
     const btn=document.getElementById('syncHostNextBtn');
     if(btn) btn.textContent=syncStep>=syncDeck.length-1?'Terminar Sesión →':'Siguiente Carta →';
 }
@@ -2516,63 +2629,254 @@ async function syncOnlineNextCard(){
     syncStep++;
     await rtdb.ref('sync/'+syncRoomId).update({currentCard:syncStep});
     drawSyncHostCard();
+    // Reset warning
+    const warn=document.getElementById('syncPendingWarning');
+    const forceBtn=document.getElementById('syncHostForceBtn');
+    if(warn) warn.style.display='none';
+    if(forceBtn) forceBtn.style.display='none';
+}
+
+async function forceNextSyncCard(){
+    showConfirm(
+        '¿Forzar avance?',
+        'Los participantes que no respondieron tendrán esa carta marcada como omisión en su reporte.',
+        async function(){
+            // Mark unanswered as 'skip'
+            const snap=await rtdb.ref('sync/'+syncRoomId+'/members').once('value');
+            const members=snap.val()||{};
+            const updates={};
+            Object.keys(members).forEach(function(uid){
+                const m=members[uid];
+                if(m&&m.name&&!(m.answers&&m.answers[syncStep])){
+                    updates['sync/'+syncRoomId+'/members/'+uid+'/answers/'+syncStep]='skip';
+                }
+            });
+            if(Object.keys(updates).length) await rtdb.ref().update(updates);
+            await syncOnlineNextCard();
+        }
+    );
 }
 
 async function endSyncOnlineSession(){
     await rtdb.ref('sync/'+syncRoomId).update({status:'ended'});
+    // Fetch all final member data for host report
+    const snap=await rtdb.ref('sync/'+syncRoomId+'/members').once('value');
+    const members=snap.val()||{};
+    syncOnlineResults=members;
     syncListeners.forEach(function(fn){fn();});
     syncListeners=[];
-    showToast('Sesión INTG Sync terminada');
+    // Go to host observations
     hideAll();
-    document.getElementById('scr-setup').classList.remove('hidden');
+    document.getElementById('scr-sync-final').classList.remove('hidden');
+    // Reuse existing observations screen for host
+    document.getElementById('syncFinalNotes').value='';
+    window.scrollTo(0,0);
 }
 
 function startSyncGuestSession(room, guestName){
     syncDeck=room.deck||[];
     const user=currentUser||(auth&&auth.currentUser);
-    const uid=user?user.uid:('guest_'+Date.now());
+    // Use the stored uid — fixes the undefined name bug
+    const uid=syncGuestUid||(user?user.uid:null);
+    syncGuestDisplayName=guestName;
     hideAll();
     document.getElementById('scr-sync-online-session').classList.remove('hidden');
     document.getElementById('syncOnlineRoomTag').textContent='INTG Sync · '+syncRoomId;
-    const grid=document.getElementById('syncOnlineGrid');
-    grid.innerHTML='';
+    // Show participant name at top
+    const nameEl=document.getElementById('syncOnlineParticipantName');
+    if(nameEl) nameEl.textContent=guestName;
+    // Reset UI
+    const waitEl=document.getElementById('syncOnlineWaiting');
+    const endEl=document.getElementById('syncOnlineEndedNotice');
+    const gridEl=document.getElementById('syncOnlineGrid');
+    if(waitEl) waitEl.style.display='none';
+    if(endEl) endEl.style.display='none';
+
+    // Build symbol buttons
+    gridEl.innerHTML='';
     SYMBOLS.forEach(function(s){
         const btn=document.createElement('div');
         btn.className='opt-btn';
         const dc=room.colorLevel===1?'#000000':s.c;
         const isWav=s.id==='wav';
         const shadowOpacity=isWav&&dc!=='#000000'?0.22:0.65;
-        btn.innerHTML=`<svg viewBox="0 0 100 100" stroke="${dc}" style="filter:drop-shadow(0 0 2px rgba(255,255,255,${shadowOpacity}))">${SVGS[s.id]}</svg><span>${s.n}</span>`;
+        btn.innerHTML='<svg viewBox="0 0 100 100" stroke="'+dc+'" style="filter:drop-shadow(0 0 2px rgba(255,255,255,'+shadowOpacity+'))">'+SVGS[s.id]+'</svg><span>'+s.n+'</span>';
         btn.onclick=(function(sId){return function(){
+            if(!uid) return;
             rtdb.ref('sync/'+syncRoomId+'/members/'+uid+'/answers/'+syncStep).set(sId);
-            updateSyncGuestStats(sId);
-            showToast('Respuesta registrada ✓');
+            // Show waiting message, hide grid
+            if(gridEl) gridEl.style.opacity='0.3';
+            if(waitEl) waitEl.style.display='block';
         };})(s.id);
-        grid.appendChild(btn);
+        gridEl.appendChild(btn);
     });
+
+    // Listen for card changes — re-enable grid on new card
     const cardRef=rtdb.ref('sync/'+syncRoomId+'/currentCard');
     const offCard=cardRef.on('value',function(snap){
-        syncStep=snap.val()||0;
-        document.getElementById('syncOnlineStep').textContent='CARTA '+String(syncStep+1).padStart(2,'0')+' / '+syncDeck.length;
+        const newStep=snap.val()||0;
+        if(newStep!==syncStep){
+            syncStep=newStep;
+            document.getElementById('syncOnlineStep').textContent='CARTA '+String(syncStep+1).padStart(2,'0')+' / '+syncDeck.length;
+            // Re-enable grid for new card
+            if(gridEl) gridEl.style.opacity='1';
+            if(waitEl) waitEl.style.display='none';
+        }
     });
     syncListeners.push(function(){cardRef.off('value',offCard);});
-    window.scrollTo(0,0);
-}
 
-function updateSyncGuestStats(lastAnswer){
-    // Update HUD stats for guest
-    const dEl=document.getElementById('syncVDir');
-    const pEl=document.getElementById('syncVPre');
-    const psEl=document.getElementById('syncVPos');
-    if(dEl&&lastAnswer===syncDeck[syncStep].id) dEl.textContent=parseInt(dEl.textContent||'0')+1;
+    // Listen for session end
+    const statusRef=rtdb.ref('sync/'+syncRoomId+'/status');
+    const offStatus=statusRef.on('value',function(snap){
+        if(snap.val()==='ended') endSyncGuestSession();
+    });
+    syncListeners.push(function(){statusRef.off('value',offStatus);});
+
+    window.scrollTo(0,0);
 }
 
 function endSyncGuestSession(){
     syncListeners.forEach(function(fn){fn();});
     syncListeners=[];
-    showToast('La sesión INTG Sync ha terminado');
+    // Show completion notice on guest screen
+    const grid=document.getElementById('syncOnlineGrid');
+    const wait=document.getElementById('syncOnlineWaiting');
+    const notice=document.getElementById('syncOnlineEndedNotice');
+    if(grid) grid.innerHTML='';
+    if(wait) wait.style.display='none';
+    if(notice) notice.style.display='block';
+    document.getElementById('syncOnlineStep').textContent='SESIÓN COMPLETA';
+    window.scrollTo(0,0);
+}
+
+function goToSyncGuestFinalNotes(){
     hideAll();
-    document.getElementById('scr-setup').classList.remove('hidden');
+    document.getElementById('scr-sync-guest-final').classList.remove('hidden');
+    document.getElementById('syncGuestFinalSubtitle').textContent='Sesión: '+syncRoomId;
+    window.scrollTo(0,0);
+}
+
+async function processSyncGuestReport(){
+    const finNotes=document.getElementById('syncGuestFinalNotes').value.trim();
+    // Fetch my answers from Firebase
+    const uid=syncGuestUid;
+    if(!uid||!rtdb){showToast('Error al obtener datos','#f85149');return;}
+    const snap=await rtdb.ref('sync/'+syncRoomId+'/members/'+uid).once('value');
+    const memberData=snap.val()||{};
+    const myAnswers=memberData.answers||{};
+    // Build logs array from answers object
+    const myLogs=syncDeck.map(function(_,i){return myAnswers[i]||null;});
+    const deckArr=syncDeck.map(function(d){return {id:d.id,renderColor:d.renderColor};});
+    let d=0,pv=0,ps=0;
+    myLogs.forEach(function(ans,i){
+        if(!ans||ans==='skip') return;
+        if(ans===deckArr[i].id) d++;
+        if(i+1<myLogs.length&&deckArr[i+1]&&ans===deckArr[i+1].id) pv++;
+        if(i>0&&deckArr[i-1]&&ans===deckArr[i-1].id) ps++;
+    });
+    const cnv=document.getElementById('cnvSyncGuestReport');
+    const ctx=cnv.getContext('2d');
+    buildReport(ctx,cnv,{
+        emisor:'Emisor (Online)',
+        receptor:syncGuestDisplayName+' — RECEPTOR ONLINE',
+        obsNotes:'Sesión INTG Sync Online · Sala: '+syncRoomId,
+        finNotes:finNotes,
+        d,p:pv,ps,
+        totalCards:syncDeck.length,
+        colorLevel:1,
+        dateStr:new Date().toLocaleDateString('es-MX'),
+        timeStr:new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),
+        sessId:null,seqNum:null,
+        logsArr:myLogs.map(function(a){return a||'skip';}),
+        deckArr,
+        streaks:computeStreaks(myLogs.filter(function(a){return a&&a!=='skip';}),deckArr,syncDeck.length)
+    });
+    hideAll();
+    document.getElementById('scr-sync-guest-report').classList.remove('hidden');
+    document.getElementById('syncGuestReportSubtitle').textContent='Sala: '+syncRoomId+' · '+syncGuestDisplayName;
+    window.scrollTo(0,0);
+}
+
+function downloadGuestReport(){
+    downloadPNG('cnvSyncGuestReport', syncGuestDisplayName||'participante');
+}
+
+function showSyncRanking(){
+    hideAll();
+    document.getElementById('scr-sync-ranking').classList.remove('hidden');
+    document.getElementById('syncRankingSubtitle').textContent='Sesión INTG Sync — '+new Date().toLocaleDateString('es-MX');
+    const content=document.getElementById('syncRankingContent');
+    // Build participant results from syncOnlineResults or syncLogs
+    let participants=[];
+    if(syncRole==='host'&&Object.keys(syncOnlineResults).length>0){
+        // Online session
+        const members=syncOnlineResults;
+        Object.values(members).filter(function(m){return m&&m.name;}).forEach(function(m){
+            const answers=m.answers||{};
+            const logs=syncDeck.map(function(_,i){return answers[i]||null;});
+            let d=0,pv=0,ps=0,skipped=0;
+            logs.forEach(function(ans,i){
+                if(!ans||ans==='skip'){skipped++;return;}
+                if(ans===syncDeck[i].id) d++;
+                if(i+1<logs.length&&syncDeck[i+1]&&ans===syncDeck[i+1].id) pv++;
+                if(i>0&&syncDeck[i-1]&&ans===syncDeck[i-1].id) ps++;
+            });
+            participants.push({name:m.name,d,p:pv,ps,skipped,total:syncDeck.length});
+        });
+    } else if(syncParticipants.length>0){
+        // Local session
+        syncParticipants.forEach(function(p){
+            const logs=syncLogs[p.name]||[];
+            let d=0,pv=0,ps=0;
+            logs.forEach(function(ans,i){
+                if(!ans) return;
+                if(ans===syncDeck[i].id) d++;
+                if(i+1<logs.length&&syncDeck[i+1]&&ans===syncDeck[i+1].id) pv++;
+                if(i>0&&syncDeck[i-1]&&ans===syncDeck[i-1].id) ps++;
+            });
+            participants.push({name:p.name,isEmisor:p.isEmisor,d,p:pv,ps,skipped:0,total:syncDeck.length});
+        });
+    }
+    // Sort by direct hits descending
+    participants.sort(function(a,b){return b.d-a.d;});
+    const medals=['🥇','🥈','🥉'];
+    let html='<div style="margin-bottom:20px;">';
+    // Summary stats grid
+    html+='<div style="background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:16px;">';
+    html+='<div style="font-size:0.65rem;font-weight:bold;color:#58a6ff;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;">📊 Resumen de la Sesión</div>';
+    html+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;text-align:center;">';
+    html+='<div><div style="font-size:0.6rem;color:var(--gray);">PARTICIPANTES</div><div style="font-size:1.4rem;font-weight:bold;color:var(--white);">'+participants.length+'</div></div>';
+    html+='<div><div style="font-size:0.6rem;color:var(--gray);">CARTAS</div><div style="font-size:1.4rem;font-weight:bold;color:var(--white);">'+(syncDeck.length||25)+'</div></div>';
+    const topD=participants.length>0?participants[0].d:0;
+    html+='<div><div style="font-size:0.6rem;color:var(--gray);">MÁXIMO</div><div style="font-size:1.4rem;font-weight:bold;color:#3fb950;">'+topD+'</div></div>';
+    html+='</div></div>';
+    // Ranking list
+    html+='<div style="font-size:0.65rem;font-weight:bold;color:#58a6ff;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">🏆 Ranking de Aciertos</div>';
+    participants.forEach(function(p,i){
+        const pct=Math.round((p.d/p.total)*100);
+        const medal=medals[i]||'';
+        const isEmisor=p.isEmisor;
+        html+='<div style="background:rgba(0,0,0,0.3);border:1px solid '+(i===0?'var(--accent)':'var(--border)')+';border-radius:12px;padding:14px 16px;margin-bottom:10px;">';
+        html+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">';
+        html+='<div style="display:flex;align-items:center;gap:10px;">';
+        html+='<span style="font-size:1.4rem;">'+medal+'</span>';
+        html+='<div><div style="font-weight:bold;color:var(--white);font-size:0.9rem;">'+(isEmisor?'⚡ ':'')+p.name+'</div>';
+        if(isEmisor) html+='<div style="font-size:0.6rem;color:#58a6ff;">EMISOR / OPERADOR</div>';
+        html+='</div></div>';
+        html+='<div style="text-align:right;"><div style="font-size:1.6rem;font-weight:bold;color:#3fb950;">'+p.d+'</div><div style="font-size:0.6rem;color:var(--gray);">'+pct+'% DIRECTO</div></div>';
+        html+='</div>';
+        // Mini stats bar
+        html+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;font-size:0.7rem;text-align:center;">';
+        html+='<div style="background:rgba(63,185,80,0.1);border-radius:6px;padding:4px;"><div style="color:#3fb950;font-weight:bold;">'+p.d+'</div><div style="color:var(--gray);">Directos</div></div>';
+        html+='<div style="background:rgba(88,166,255,0.1);border-radius:6px;padding:4px;"><div style="color:#58a6ff;font-weight:bold;">'+p.p+'</div><div style="color:var(--gray);">Precog.</div></div>';
+        html+='<div style="background:rgba(248,81,73,0.1);border-radius:6px;padding:4px;"><div style="color:#f85149;font-weight:bold;">'+p.ps+'</div><div style="color:var(--gray);">Postcog.</div></div>';
+        html+='</div>';
+        if(p.skipped>0) html+='<div style="font-size:0.65rem;color:var(--gray);margin-top:6px;">'+p.skipped+' carta(s) omitida(s)</div>';
+        html+='</div>';
+    });
+    html+='</div>';
+    content.innerHTML=html;
+    window.scrollTo(0,0);
 }
 
 function cancelSyncRoom(){
