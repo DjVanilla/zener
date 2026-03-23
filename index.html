@@ -95,7 +95,7 @@
     <div id="modeBadge" style="font-size:0.72rem;color:var(--gray);text-align:center;margin:4px 0 14px;letter-spacing:0.5px;min-height:16px;">Test individual — carta oculta, sin Emisor.</div>
 
     <div class="config-card" id="configFields">
-        <div class="input-group" id="fieldReceptor"><label>Tu nombre (Receptor)</label><input type="text" id="inReceptor" value="" placeholder="Nombre de quien recibe telepatía"></div>
+        <div class="input-group" id="fieldReceptor"><label>Tu nombre (Receptor)</label><input type="text" id="inReceptor" value="" placeholder="Practica tus habilidades"></div>
         <div class="input-group">
             <label>Longitud de la Sesión</label>
             <select id="inTotalCards">
@@ -152,7 +152,7 @@
         </div>
     </div>
 
-    <div style="text-align:right;margin-top:18px;font-size:0.6rem;color:rgba(255,255,255,0.18);letter-spacing:0.5px;font-style:italic;">Desarrollado por @ARSifuentes</div>
+    <div style="text-align:right;margin-top:18px;font-size:0.6rem;color:rgba(255,255,255,0.18);letter-spacing:0.5px;font-style:italic;">Desarrollado por <a href="https://t.me/ARSifuentes" target="_blank" rel="noopener" style="color:inherit;text-decoration:none;">@ARSifuentes</a></div>
 </div>
 
 <!-- PANTALLA 2: SESIÓN -->
@@ -421,7 +421,7 @@
     </div>
 
     <button class="btn-outline" onclick="showSetup()" style="border-color:#1f6feb;color:#58a6ff;">⌂ Volver al Inicio</button>
-    <div style="text-align:right;margin-top:16px;font-size:0.6rem;color:rgba(255,255,255,0.18);letter-spacing:0.5px;font-style:italic;">Desarrollado por @ARSifuentes</div>
+    <div style="text-align:right;margin-top:16px;font-size:0.6rem;color:rgba(255,255,255,0.18);letter-spacing:0.5px;font-style:italic;">Desarrollado por <a href="https://t.me/ARSifuentes" target="_blank" rel="noopener" style="color:inherit;text-decoration:none;">@ARSifuentes</a></div>
 </div>
 
 
@@ -694,6 +694,8 @@
             <select id="syncHostTotalCards">
                 <option value="25">25 Cartas (Estándar Rhine)</option>
                 <option value="50">50 Cartas (Extendido)</option>
+                <option value="75">75 Cartas (Alta precisión)</option>
+                <option value="100">100 Cartas (Protocolo Maestro)</option>
             </select>
         </div>
         <div class="input-group">
@@ -839,7 +841,7 @@
         </div>
         <button class="btn-primary" onclick="showSetup()" style="width:100%;max-width:320px;">⌂ Volver al Inicio</button>
     </div>
-    <div style="text-align:right;margin-top:18px;font-size:0.6rem;color:rgba(255,255,255,0.18);letter-spacing:0.5px;font-style:italic;">Desarrollado por @ARSifuentes</div>
+    <div style="text-align:right;margin-top:18px;font-size:0.6rem;color:rgba(255,255,255,0.18);letter-spacing:0.5px;font-style:italic;">Desarrollado por <a href="https://t.me/ARSifuentes" target="_blank" rel="noopener" style="color:inherit;text-decoration:none;">@ARSifuentes</a></div>
 </div>
 
 <!-- PANTALLA 27: REPORTE INDIVIDUAL DESDE RANKING -->
@@ -983,8 +985,16 @@ function updateAutoHistoryBtn(){
     if(btn) btn.style.display=getAutoHistory().length?'':'none';
 }
 function showSetup(){
-    hideAll();document.getElementById('scr-setup').classList.remove('hidden');
+    hideAll();
+    document.getElementById('scr-setup').classList.remove('hidden');
+    // Always restore Auto Test as selected when returning to setup
+    document.querySelectorAll('.mode-btn').forEach(function(b){b.classList.remove('active');});
+    const autoBtn=document.getElementById('modeAuto');
+    if(autoBtn) autoBtn.classList.add('active');
+    const badge=document.getElementById('modeBadge');
+    if(badge) badge.textContent='Test individual — carta oculta, sin Emisor.';
     updateAutoHistoryBtn();
+    window.scrollTo(0,0);
 }
 function showSetupWithThanks(){
     hideAll();
@@ -3176,35 +3186,45 @@ const firebaseConfig={
 // Stubs so app works even if Firebase never loads (offline / blocked)
 let auth=null, db=null, rtdb=null, currentUser=null;
 
-function signInWithGoogle(retries){
-    retries=retries||0;
-    if(!auth){
-        if(retries<10){
-            setTimeout(function(){signInWithGoogle(retries+1);},600);
-            if(retries===0) showToast('Conectando con Firebase...','#58a6ff');
-        } else {
-            showToast('Firebase no disponible — verifica tu conexión','#f85149');
+function signInWithGoogle(){
+    // Show loading state immediately
+    const btn=document.querySelector('[onclick="signInWithGoogle()"]');
+    if(btn){ btn.textContent='Conectando...'; btn.disabled=true; }
+
+    function tryLogin(){
+        if(!auth){
+            // Retry silently — restore button
+            setTimeout(function(){
+                if(btn){ btn.innerHTML='<span style="margin-right:5px;">G</span>Iniciar sesión'; btn.disabled=false; }
+                // Notify user
+                showToast('Firebase aún cargando, intenta de nuevo','#58a6ff');
+            },3000);
+            return;
         }
-        return;
+        const provider=new firebase.auth.GoogleAuthProvider();
+        provider.addScope('email');
+        provider.addScope('profile');
+        auth.signInWithPopup(provider).then(function(result){
+            if(result&&result.user){
+                currentUser=result.user;
+                updateAuthUI(result.user);
+                migrateLocalToCloud();
+                updateAutoHistoryBtn();
+                showToast('Bienvenido, '+(result.user.displayName||result.user.email)+'!');
+            }
+        }).catch(function(e){
+            if(btn){ btn.innerHTML='<span style="margin-right:5px;">G</span>Iniciar sesión'; btn.disabled=false; }
+            if(e.code==='auth/popup-blocked'){
+                showToast('Popup bloqueado — permite popups para este sitio','#f85149');
+            } else if(e.code==='auth/popup-closed-by-user'){
+                // User closed — just restore button silently
+            } else {
+                showToast('Error: '+e.message,'#f85149');
+                console.warn('signInWithGoogle error:',e.code,e.message);
+            }
+        });
     }
-    const provider=new firebase.auth.GoogleAuthProvider();
-    provider.addScope('email');
-    provider.addScope('profile');
-    auth.signInWithPopup(provider).then(function(result){
-        if(result&&result.user){
-            currentUser=result.user;
-            updateAuthUI(result.user);
-            migrateLocalToCloud();
-            updateAutoHistoryBtn();
-            showToast('Bienvenido, '+(result.user.displayName||result.user.email)+'!');
-        }
-    }).catch(function(e){
-        if(e.code==='auth/popup-blocked'){
-            showToast('Popup bloqueado — permite popups para este sitio','#f85149');
-        } else if(e.code!=='auth/popup-closed-by-user'){
-            showToast('Error: '+e.message,'#f85149');
-        }
-    });
+    tryLogin();
 }
 function signOutUser(){
     if(!auth){return;}
@@ -3222,14 +3242,14 @@ function signOutUser(){
 function initFirebase(retries){
     retries=retries||0;
     if(typeof firebase==='undefined'){
-        if(retries<20){
-            setTimeout(function(){initFirebase(retries+1);},500);
+        if(retries<30){
+            setTimeout(function(){initFirebase(retries+1);},300);
         } else {
-            console.warn('Firebase SDK no cargó — modo offline activo');
+            console.warn('Firebase SDK no cargó después de 9s — modo offline activo');
             const lo=document.getElementById('authLoggedOut');
             if(lo) lo.innerHTML='<div style="font-size:0.7rem;color:var(--gray);">Sin conexión — historial local activo</div>';
             const dbg=document.getElementById('authDebug');
-            if(dbg){dbg.textContent='Firebase no cargó — verifica tu conexión';dbg.style.display='block';}
+            if(dbg){dbg.textContent='Firebase no disponible';dbg.style.display='block';}
         }
         return;
     }
