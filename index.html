@@ -2391,18 +2391,27 @@ function generateCanvas(){
     const receptor=document.getElementById('inReceptor').value||'Receptor';
     const obsNotes=document.getElementById('inObsNotes').value.trim();
     const finNotes=document.getElementById('inFinalNotes').value.trim();
+    // Only use cards actually played
+    const playedCount=logs.length;
+    const playedLogs=logs.slice(0,playedCount);
+    const playedDeck=deck.slice(0,playedCount);
     let d=0,p=0,ps=0;
-    logs.forEach((ans,i)=>{
-        if(ans===deck[i].id)d++;
-        if(i+1<totalCards&&ans===(deck[i+1]&&deck[i+1].id))p++;
-        if(i-1>=0&&ans===(deck[i-1]&&deck[i-1].id))ps++;
+    playedLogs.forEach(function(ans,i){
+        if(ans===playedDeck[i].id)d++;
+        if(i+1<playedCount&&ans===(playedDeck[i+1]&&playedDeck[i+1].id))p++;
+        if(i-1>=0&&ans===(playedDeck[i-1]&&playedDeck[i-1].id))ps++;
     });
     const now=new Date();
     buildReport(ctx,cnv,{
-        emisor,receptor,obsNotes,finNotes,d,p,ps,totalCards,colorLevel,
+        emisor,receptor,obsNotes,finNotes,d,p,ps,
+        totalCards:playedCount,
+        colorLevel,
         dateStr:now.toLocaleDateString(),
         timeStr:now.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),
-        sessId:null,seqNum:null,logsArr:logs,deckArr:deck,streaks:computeStreaks(logs,deck,totalCards)
+        sessId:null,seqNum:null,
+        logsArr:playedLogs,
+        deckArr:playedDeck,
+        streaks:computeStreaks(playedLogs,playedDeck,playedCount)
     });
 }
 
@@ -2640,17 +2649,21 @@ function buildSyncReportTabs(){
 function renderSyncParticipantReport(idx, finNotes){
     const p=syncParticipants[idx];
     if(!p) return;
-    const pLogs=syncLogs[p.name]||[];
+    const rawLogs=syncLogs[p.name]||[];
+    // Only include cards that were actually played (non-undefined entries)
+    // syncStep holds how many cards were played; use that as the ceiling
+    const playedCount=Math.min(rawLogs.length, syncStep>0?syncStep:rawLogs.filter(function(a){return a!==undefined;}).length||rawLogs.length);
+    const pLogs=rawLogs.slice(0,playedCount);
+    const deckArr=syncDeck.slice(0,playedCount).map(function(d){return {id:d.id,renderColor:d.renderColor};});
     const cnv=document.getElementById('cnvSyncReport');
     if(!cnv) return;
     const ctx=cnv.getContext('2d');
-    const deckArr=syncDeck.map(function(d){return {id:d.id,renderColor:d.renderColor};});
     let d=0,pPre=0,ps=0;
     pLogs.forEach(function(ans,i){
         if(!ans||ans==='skip') return;
-        if(ans===syncDeck[i].id) d++;
-        if(i+1<pLogs.length&&syncDeck[i+1]&&ans===syncDeck[i+1].id) pPre++;
-        if(i>0&&syncDeck[i-1]&&ans===syncDeck[i-1].id) ps++;
+        if(ans===deckArr[i].id) d++;
+        if(i+1<pLogs.length&&deckArr[i+1]&&ans===deckArr[i+1].id) pPre++;
+        if(i>0&&deckArr[i-1]&&ans===deckArr[i-1].id) ps++;
     });
     const emisorLabel=p.isEmisor?'EMISOR / OPERADOR':'RECEPTOR';
     buildReport(ctx,cnv,{
@@ -2659,14 +2672,14 @@ function renderSyncParticipantReport(idx, finNotes){
         obsNotes:'Sesión INTG Sync · '+syncParticipants.map(function(x){return x.name;}).join(', '),
         finNotes:finNotes||'',
         d,p:pPre,ps,
-        totalCards:syncDeck.length,
+        totalCards:playedCount,
         colorLevel:colorLevel||1,
         dateStr:new Date().toLocaleDateString('es-MX'),
         timeStr:new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),
         sessId:null,seqNum:null,
         logsArr:pLogs,
         deckArr,
-        streaks:computeStreaks(pLogs,deckArr,syncDeck.length)
+        streaks:computeStreaks(pLogs,deckArr,playedCount)
     });
 }
 
@@ -3215,19 +3228,26 @@ async function processSyncGuestReport(){
         if(!syncEmisorName&&syncOnlineResults._hostName) emisorName=syncOnlineResults._hostName;
     }
 
+    // Trim to only cards actually played — find last non-null answer
+    let lastPlayed=0;
+    myLogs.forEach(function(a,i){ if(a!==null&&a!==undefined) lastPlayed=i+1; });
+    const playedCount=lastPlayed||myLogs.filter(Boolean).length||syncDeck.length;
+    const trimmedLogs=myLogs.slice(0,playedCount);
+    const trimmedDeck=syncDeck.slice(0,playedCount).map(function(d){return {id:d.id,renderColor:d.renderColor};});
+
     // Normalize nulls to 'skip' for consistent rendering
-    const normalizedLogs=myLogs.map(function(a){return a||'skip';});
+    const normalizedLogs=trimmedLogs.map(function(a){return a||'skip';});
 
     // Calculate stats — skip 'skip' entries
     let d=0,pv=0,ps=0;
     normalizedLogs.forEach(function(ans,i){
         if(ans==='skip') return;
-        if(ans===deckArr[i].id) d++;
-        if(i+1<normalizedLogs.length&&deckArr[i+1]&&ans===deckArr[i+1].id) pv++;
-        if(i>0&&deckArr[i-1]&&ans===deckArr[i-1].id) ps++;
+        if(ans===trimmedDeck[i].id) d++;
+        if(i+1<normalizedLogs.length&&trimmedDeck[i+1]&&ans===trimmedDeck[i+1].id) pv++;
+        if(i>0&&trimmedDeck[i-1]&&ans===trimmedDeck[i-1].id) ps++;
     });
 
-    // For streaks, replace 'skip' with '' (empty) so calcStreakCoincidences skips them
+    // For streaks, replace 'skip' with '' so calcStreakCoincidences skips them
     const logsForStreaks=normalizedLogs.map(function(a){return a==='skip'?'':a;});
 
     // Show report screen FIRST, then draw canvas after layout
@@ -3248,14 +3268,14 @@ async function processSyncGuestReport(){
             obsNotes:'Sesión INTG Sync Online · Sala: '+(syncRoomId||''),
             finNotes:finNotes,
             d,p:pv,ps,
-            totalCards:syncDeck.length,
+            totalCards:playedCount,
             colorLevel:roomColorLevel,
             dateStr:new Date().toLocaleDateString('es-MX'),
             timeStr:new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),
             sessId:null, seqNum:null,
             logsArr:normalizedLogs,
-            deckArr:deckArr,
-            streaks:computeStreaks(logsForStreaks,deckArr,syncDeck.length)
+            deckArr:trimmedDeck,
+            streaks:computeStreaks(logsForStreaks,trimmedDeck,playedCount)
         });
     },200);
 }
@@ -3368,12 +3388,25 @@ function showRankingDetail(idx){
     rankingDetailIdx=idx;
     const p=rankingParticipants[idx];
     if(!p) return;
-    const deckArr=syncDeck.map(function(d){return {id:d.id,renderColor:d.renderColor};});
-    const logs=p.logs||[];
+    const rawLogs=p.logs||[];
+    // Trim to actual played cards — last non-null/skip entry
+    let lastPlayed=0;
+    rawLogs.forEach(function(a,i){ if(a&&a!=='skip') lastPlayed=i+1; });
+    const playedCount=lastPlayed||rawLogs.length;
+    const logs=rawLogs.slice(0,playedCount);
+    const deckArr=syncDeck.slice(0,playedCount).map(function(d){return {id:d.id,renderColor:d.renderColor};});
+    // Recalculate stats on trimmed data
+    let d=0,pPre=0,pPost=0;
+    logs.forEach(function(ans,i){
+        if(!ans||ans==='skip') return;
+        if(ans===deckArr[i].id) d++;
+        if(i+1<logs.length&&deckArr[i+1]&&ans===deckArr[i+1].id) pPre++;
+        if(i>0&&deckArr[i-1]&&ans===deckArr[i-1].id) pPost++;
+    });
     hideAll();
     document.getElementById('scr-ranking-detail').classList.remove('hidden');
     document.getElementById('rankingDetailTitle').textContent=p.name;
-    document.getElementById('rankingDetailSubtitle').textContent=(p.isEmisor?'Emisor / Operador':'Receptor')+' · '+Math.round((p.d/syncDeck.length)*100)+'% Aciertos';
+    document.getElementById('rankingDetailSubtitle').textContent=(p.isEmisor?'Emisor / Operador':'Receptor')+' · '+Math.round((d/playedCount)*100)+'% Aciertos · '+playedCount+' cartas';
     // Draw after screen is visible
     requestAnimationFrame(function(){
         const cnv=document.getElementById('cnvRankingDetail');
@@ -3384,15 +3417,15 @@ function showRankingDetail(idx){
             receptor:p.name+(p.isEmisor?' — EMISOR/OPERADOR':''),
             obsNotes:'Sesión INTG Sync · '+new Date().toLocaleDateString('es-MX'),
             finNotes:'',
-            d:p.d,p:p.p,ps:p.ps,
-            totalCards:syncDeck.length,
-            colorLevel:1,
+            d,p:pPre,ps:pPost,
+            totalCards:playedCount,
+            colorLevel:colorLevel||1,
             dateStr:new Date().toLocaleDateString('es-MX'),
             timeStr:new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),
             sessId:null,seqNum:null,
             logsArr:logs,
             deckArr,
-            streaks:computeStreaks(logs,deckArr,syncDeck.length)
+            streaks:computeStreaks(logs,deckArr,playedCount)
         });
     });
     window.scrollTo(0,0);
