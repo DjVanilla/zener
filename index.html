@@ -444,6 +444,35 @@
         </div>
     </div>
 
+    <!-- ── VIDEO TUTORIAL ──────────────────────────────────────────────────── -->
+    <div style="font-size:0.65rem;font-weight:bold;color:#58a6ff;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:12px;">▶ Tutorial Animado</div>
+    <div style="background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:24px;">
+
+        <!-- Tab selector -->
+        <div id="tutTabs" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">
+            <button onclick="setTutorial('auto')" id="tutTabAuto" style="padding:6px 14px;border-radius:20px;border:1px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer;font-size:0.7rem;font-weight:bold;-webkit-appearance:none;appearance:none;">Auto Test</button>
+            <button onclick="setTutorial('local')" id="tutTabLocal" style="padding:6px 14px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--gray);cursor:pointer;font-size:0.7rem;font-weight:bold;-webkit-appearance:none;appearance:none;">INTG Sync Local</button>
+            <button onclick="setTutorial('online')" id="tutTabOnline" style="padding:6px 14px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--gray);cursor:pointer;font-size:0.7rem;font-weight:bold;-webkit-appearance:none;appearance:none;">INTG Sync Online</button>
+        </div>
+
+        <!-- Phone frame + animation -->
+        <div style="display:flex;flex-direction:column;align-items:center;gap:12px;">
+            <div id="tutPhone" style="width:220px;height:380px;background:#010409;border:2px solid #30363d;border-radius:28px;overflow:hidden;position:relative;box-shadow:0 0 30px rgba(31,111,235,0.15);">
+                <canvas id="tutCanvas" width="220" height="380" style="display:block;"></canvas>
+            </div>
+            <!-- Step indicator -->
+            <div id="tutStepDots" style="display:flex;gap:6px;align-items:center;"></div>
+            <!-- Step label -->
+            <div id="tutStepLabel" style="font-size:0.72rem;color:var(--white);text-align:center;min-height:36px;max-width:260px;line-height:1.5;"></div>
+            <!-- Controls -->
+            <div style="display:flex;gap:10px;align-items:center;">
+                <button onclick="tutPrev()" style="background:transparent;border:1px solid var(--border);color:var(--gray);width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:1rem;-webkit-appearance:none;appearance:none;">‹</button>
+                <button onclick="tutPlayPause()" id="tutPlayBtn" style="background:var(--accent);border:none;color:#fff;width:44px;height:44px;border-radius:50%;cursor:pointer;font-size:1rem;-webkit-appearance:none;appearance:none;">⏸</button>
+                <button onclick="tutNext()" style="background:transparent;border:1px solid var(--border);color:var(--gray);width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:1rem;-webkit-appearance:none;appearance:none;">›</button>
+            </div>
+        </div>
+    </div>
+
     <button class="btn-outline" onclick="showSetup()" style="border-color:#1f6feb;color:#58a6ff;">⌂ Volver al Inicio</button>
     <!-- Desarrollado por @ARSifuentes https://t.me/ARSifuentes -->
 </div>
@@ -2065,6 +2094,267 @@ function drawLink(ctx,x1,y1,x2,y2,c,w){
 // Only cards with a real answer (not null/undefined/empty/'skip') count as played.
 // 'skip' means the host force-advanced without the participant answering — 
 // those at the tail are treated as unplayed and removed from the report.
+// ── TUTORIAL ANIMATION ENGINE ─────────────────────────────────────────────
+(function(){
+'use strict';
+const TSYMS_DRAW={
+    cir:(ctx,cx,cy,r,col)=>{ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.strokeStyle=col;ctx.lineWidth=3;ctx.stroke();},
+    crs:(ctx,cx,cy,r,col)=>{ctx.strokeStyle=col;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(cx,cy-r);ctx.lineTo(cx,cy+r);ctx.stroke();ctx.beginPath();ctx.moveTo(cx-r,cy);ctx.lineTo(cx+r,cy);ctx.stroke();},
+    sqr:(ctx,cx,cy,r,col)=>{ctx.strokeStyle=col;ctx.lineWidth=3;ctx.strokeRect(cx-r,cy-r,r*2,r*2);},
+    str:(ctx,cx,cy,r,col)=>{ctx.beginPath();const pts=5,inner=r*0.45;for(let i=0;i<pts*2;i++){const a=(i*Math.PI/pts)-Math.PI/2;const ri=i%2===0?r:inner;const fn=i===0?'moveTo':'lineTo';ctx[fn](cx+ri*Math.cos(a),cy+ri*Math.sin(a));}ctx.closePath();ctx.strokeStyle=col;ctx.lineWidth=3;ctx.stroke();},
+    wav:(ctx,cx,cy,r,col)=>{ctx.strokeStyle=col;ctx.lineWidth=2.5;for(let i=0;i<3;i++){const yy=cy-3+i*4;ctx.beginPath();ctx.moveTo(cx-r,yy);ctx.quadraticCurveTo(cx-r/2,yy-6,cx,yy);ctx.quadraticCurveTo(cx+r/2,yy-6,cx+r,yy);ctx.stroke();}}
+};
+const TNAMES={cir:'Círculo',crs:'Cruz',wav:'Ondas',sqr:'Cuadrado',str:'Estrella'};
+const TCOLS={cir:'#f1c40f',crs:'#e74c3c',wav:'#3498db',sqr:'#aaa',str:'#2ecc71'};
+const ALL_SYMS=['cir','crs','wav','sqr','str'];
+const BG='#010409',CARD='#0d1117',ACC='#1f6feb',GREEN='#3fb950',RED='#f85149',GRAY='#8b949e',WHITE='#f0f6fc';
+
+function sym(ctx,id,cx,cy,r,col){const fn=TSYMS_DRAW[id];if(fn)fn(ctx,cx,cy,r||10,col||TCOLS[id]||'#fff');}
+function box(ctx,x,y,w,h,col,r){ctx.beginPath();ctx.roundRect(x,y,w,h,r||6);ctx.fillStyle=col;ctx.fill();}
+function stroke(ctx,x,y,w,h,col,r){ctx.beginPath();ctx.roundRect(x,y,w,h,r||6);ctx.strokeStyle=col;ctx.lineWidth=1.5;ctx.stroke();}
+function txt(ctx,t,x,y,size,col,align,bold){ctx.font=(bold?'bold ':'')+size+'px Arial';ctx.fillStyle=col;ctx.textAlign=align||'center';ctx.fillText(String(t),x,y);}
+
+const steps={
+auto:[
+ {label:'Pulsa "Auto Test", ingresa tu nombre y elige la longitud de la sesión.',
+  draw(ctx,w,h,t){
+   box(ctx,0,0,w,h,BG);
+   txt(ctx,'ZENER TEST',w/2,36,13,WHITE,'center',true);
+   txt(ctx,'INTG CITY',w/2,50,9,'#58a6ff','center');
+   box(ctx,10,62,92,32,ACC,16);txt(ctx,'AUTO TEST',56,82,8,WHITE,'center',true);
+   box(ctx,114,62,92,32,CARD,16);stroke(ctx,114,62,92,32,'#30363d',16);txt(ctx,'INTG SYNC',160,82,8,GRAY,'center');
+   txt(ctx,'Test individual — carta oculta',w/2,108,7,GRAY,'center');
+   box(ctx,12,122,196,26,CARD,7);stroke(ctx,12,122,196,26,'#30363d',7);txt(ctx,'Tu nombre (Receptor)',110,139,7,GRAY,'center');
+   if(t<0.7){const a=0.5+0.5*Math.sin(t*Math.PI*5);ctx.globalAlpha=a;stroke(ctx,10,62,92,32,WHITE,16);ctx.globalAlpha=1;}
+   box(ctx,12,160,196,32,GREEN,10);txt(ctx,'▶ INICIAR SESIÓN',w/2,180,9,WHITE,'center',true);
+ }},
+ {label:'Cuenta regresiva 3-2-1. Concéntrate antes de que aparezca la carta.',
+  draw(ctx,w,h,t){
+   box(ctx,0,0,w,h,BG);
+   const nums=['3','2','1','¡YA!'];const ni=Math.min(3,Math.floor(t*4));
+   const fade=1-Math.abs(((t*4)%1)-0.5)*1.6;
+   ctx.globalAlpha=Math.max(0.1,fade);
+   txt(ctx,nums[ni],w/2,h/2+20,72,ni<3?WHITE:'#3fb950','center',true);
+   ctx.globalAlpha=1;
+   txt(ctx,'CARTA 01 / 25',w/2,28,8,'#58a6ff','center',true);
+ }},
+ {label:'Carta oculta — elige la figura que percibes instintivamente.',
+  draw(ctx,w,h,t){
+   box(ctx,0,0,w,h,BG);
+   txt(ctx,'CARTA 01 / 25',w/2,20,8,'#58a6ff','center',true);
+   box(ctx,62,28,96,120,CARD,14);stroke(ctx,62,28,96,120,ACC,14);
+   txt(ctx,'?',110,96,38,GRAY,'center',true);
+   const bw=56,bh=50,gx=10,gy=162;
+   [[0,1],[2,3],[4,null]].forEach(([a,b],row)=>{
+    if(a!==null){const bxx=b!==null?gx:gx+(bw+6)/2;const sel=t>0.55&&a===2;
+     box(ctx,bxx,gy+row*(bh+5),bw,bh,sel?'rgba(63,185,80,0.15)':CARD,9);stroke(ctx,bxx,gy+row*(bh+5),bw,bh,sel?GREEN:'#30363d',9);
+     sym(ctx,ALL_SYMS[a],bxx+bw/2,gy+row*(bh+5)+26,11,sel?GREEN:TCOLS[ALL_SYMS[a]]);
+     txt(ctx,TNAMES[ALL_SYMS[a]],bxx+bw/2,gy+row*(bh+5)+bh-9,6,GRAY);}
+    if(b!==null){const bxx=gx+bw+6;box(ctx,bxx,gy+row*(bh+5),bw,bh,CARD,9);stroke(ctx,bxx,gy+row*(bh+5),bw,bh,'#30363d',9);
+     sym(ctx,ALL_SYMS[b],bxx+bw/2,gy+row*(bh+5)+26,11,TCOLS[ALL_SYMS[b]]);
+     txt(ctx,TNAMES[ALL_SYMS[b]],bxx+bw/2,gy+row*(bh+5)+bh-9,6,GRAY);}
+   });
+ }},
+ {label:'Para terminar antes, desliza la barra roja "Finalizar ahora".',
+  draw(ctx,w,h,t){
+   box(ctx,0,0,w,h,BG);
+   txt(ctx,'CARTA 11 / 25',w/2,20,8,'#58a6ff','center',true);
+   box(ctx,62,28,96,120,CARD,14);stroke(ctx,62,28,96,120,ACC,14);txt(ctx,'?',110,96,38,GRAY,'center',true);
+   box(ctx,12,200,196,28,ACC,10);txt(ctx,'Siguiente Carta →',w/2,218,9,WHITE,'center',true);
+   // Swipe bar
+   const prog=Math.min(1,t*1.4);
+   box(ctx,12,242,196,36,'rgba(248,81,73,0.1)',10);stroke(ctx,12,242,196,36,RED,10);
+   txt(ctx,'⚠ DESLIZA PARA TERMINAR',w/2,256,7,RED,'center',true);
+   const thumbX=12+prog*140;
+   box(ctx,thumbX,246,48,28,RED,9);txt(ctx,'→',thumbX+24,264,12,WHITE,'center');
+ }},
+ {label:'Escribe tus observaciones y genera el reporte PNG completo.',
+  draw(ctx,w,h,t){
+   box(ctx,0,0,w,h,BG);
+   txt(ctx,'NOTAS DE CIERRE',w/2,20,9,WHITE,'center',true);
+   box(ctx,12,32,196,70,CARD,8);stroke(ctx,12,32,196,70,'#30363d',8);
+   txt(ctx,'Estado mental: tranquilo...',110,58,7,GRAY,'center');
+   box(ctx,12,114,196,32,ACC,10);txt(ctx,'GENERAR REPORTE',w/2,134,9,WHITE,'center',true);
+   if(t>0.35){
+    const a=Math.min(1,(t-0.35)/0.3);ctx.globalAlpha=a;
+    box(ctx,12,154,196,210,WHITE,10);
+    txt(ctx,'ZENER TEST',w/2,172,9,'#111','center',true);txt(ctx,'INTG CITY',w/2,184,7,ACC,'center');
+    const bars=[[GREEN,5],[ACC,2],[RED,4]];
+    bars.forEach(([col,v],i)=>{const y=196+i*28;box(ctx,16,y,188,22,'#f4f6f9',0);box(ctx,16,y,v/25*180,22,col,0);txt(ctx,['Directos','Precog.','Postcog.'][i],100,y+14,7,'#333','center');txt(ctx,v+'/25',178,y+14,7,'#555','right',true);});
+    for(let i=0;i<4;i++){if(i%2===0)box(ctx,16,282+i*19,188,19,'#f4f6f9',0);sym(ctx,ALL_SYMS[i],44,292+i*19,6,'#333');sym(ctx,ALL_SYMS[(i+2)%5],172,292+i*19,6,i===1?GREEN:'#888');}
+    ctx.globalAlpha=1;
+   }
+ }},
+],
+local:[
+ {label:'Selecciona "INTG Sync" → "Local" y configura el Emisor y los participantes.',
+  draw(ctx,w,h,t){
+   box(ctx,0,0,w,h,BG);
+   txt(ctx,'INTG SYNC — LOCAL',w/2,20,8,'#58a6ff','center',true);
+   box(ctx,12,32,196,26,CARD,7);stroke(ctx,12,32,196,26,'#30363d',7);txt(ctx,'Emisor: Alberto',110,49,8,GRAY,'center');
+   ['Participante 1','Participante 2'].forEach((n,i)=>{
+    box(ctx,12,66+i*36,158,28,CARD,7);stroke(ctx,12,66+i*36,158,28,'#30363d',7);txt(ctx,n,91,83+i*36,8,GRAY,'center');
+    box(ctx,174,66+i*36,32,28,RED,7);txt(ctx,'✕',190,83+i*36,10,WHITE,'center');
+   });
+   const a=0.6+0.4*Math.sin(t*5);ctx.globalAlpha=a;
+   box(ctx,12,142,196,28,CARD,7);stroke(ctx,12,142,196,28,'#30363d',7);txt(ctx,'+ Agregar participante',w/2,160,8,GRAY,'center');
+   ctx.globalAlpha=1;
+   box(ctx,12,182,196,32,ACC,10);txt(ctx,'▶ INICIAR SESIÓN',w/2,202,9,WHITE,'center',true);
+ }},
+ {label:'Por cada carta, cada participante elige su figura en la misma pantalla.',
+  draw(ctx,w,h,t){
+   box(ctx,0,0,w,h,BG);
+   txt(ctx,'CARTA 03 / 25',w/2,16,7,'#58a6ff','center',true);
+   box(ctx,72,22,76,96,CARD,12);stroke(ctx,72,22,76,96,ACC,12);
+   sym(ctx,'str',110,70,22,TCOLS.str);
+   ['Ana','Luis'].forEach((name,pi)=>{
+    const y=130+pi*110;
+    txt(ctx,name,w/2,y+6,8,WHITE,'center',true);
+    ALL_SYMS.forEach((s,si)=>{
+     const bx=8+si*42,by=y+14;const sel=pi===0&&si===4&&t>0.5;
+     box(ctx,bx,by,36,36,sel?'rgba(63,185,80,0.2)':CARD,8);stroke(ctx,bx,by,36,36,sel?GREEN:'#30363d',8);
+     sym(ctx,s,bx+18,by+18,10,sel?GREEN:TCOLS[s]);
+    });
+   });
+ }},
+ {label:'Se generan reportes individuales con pestañas por participante.',
+  draw(ctx,w,h,t){
+   box(ctx,0,0,w,h,BG);
+   txt(ctx,'REPORTES INTG SYNC',w/2,16,8,WHITE,'center',true);
+   const names=['Ana','Luis','Pedro'];
+   names.forEach((n,i)=>{const act=i===Math.floor(t*3)%3;box(ctx,10+i*70,24,64,24,act?ACC:CARD,12);if(!act)stroke(ctx,10+i*70,24,64,24,'#30363d',12);txt(ctx,n,42+i*70,40,7,act?WHITE:GRAY,'center',act);});
+   box(ctx,10,54,200,300,WHITE,10);
+   txt(ctx,'ZENER TEST',w/2,72,9,'#111','center',true);txt(ctx,'INTG CITY',w/2,84,7,ACC,'center');
+   [[GREEN,'DIRECTOS','6 / 25'],[ACC,'PRECOG.','2 / 25'],[RED,'POSTCOG.','4 / 25']].forEach(([col,lbl,val],i)=>{
+    const y=96+i*32;box(ctx,14,y,184,26,'#f4f6f9',4);box(ctx,14,y,parseInt(val)/25*180,26,col+'44',4);
+    txt(ctx,lbl,60,y+16,7,'#333','center');txt(ctx,val,172,y+16,8,'#333','right',true);
+   });
+   for(let i=0;i<4;i++){if(i%2===0)box(ctx,14,193+i*20,184,20,'#f4f6f9',0);sym(ctx,ALL_SYMS[i],40,203+i*20,6,'#333');sym(ctx,ALL_SYMS[(i+1)%5],172,203+i*20,6,i===2?GREEN:'#888');}
+  }},
+],
+online:[
+ {label:'El Emisor crea una sala — recibe un código de 4 letras y un enlace para compartir.',
+  draw(ctx,w,h,t){
+   box(ctx,0,0,w,h,BG);
+   txt(ctx,'SALA INTG SYNC',w/2,20,9,WHITE,'center',true);
+   txt(ctx,'CÓDIGO DE SALA',w/2,44,7,GRAY,'center');
+   const a=0.6+0.4*Math.sin(t*Math.PI*3);ctx.globalAlpha=a;
+   txt(ctx,'D  A  N  J',w/2,96,28,ACC,'center',true);ctx.globalAlpha=1;
+   box(ctx,28,110,164,28,'rgba(31,111,235,0.1)',8);stroke(ctx,28,110,164,28,'rgba(31,111,235,0.35)',8);
+   txt(ctx,'🔗 Compartir enlace',w/2,128,8,'#58a6ff','center');
+   box(ctx,12,150,196,80,CARD,8);
+   txt(ctx,'PARTICIPANTES CONECTADOS',w/2,168,6,'#58a6ff','center',true);
+   if(t>0.25)txt(ctx,'● Ana',w/2,184,8,WHITE,'center');
+   if(t>0.55)txt(ctx,'● Luis',w/2,200,8,WHITE,'center');
+   box(ctx,12,244,196,32,ACC,10);txt(ctx,'▶ INICIAR SESIÓN',w/2,264,9,WHITE,'center',true);
+ }},
+ {label:'Los participantes responden en sus dispositivos. El Emisor controla el avance.',
+  draw(ctx,w,h,t){
+   box(ctx,0,0,w,h,BG);
+   // Host phone (left)
+   box(ctx,4,14,100,330,'#0d1117',12);stroke(ctx,4,14,100,330,'#30363d',12);
+   txt(ctx,'EMISOR',54,32,7,ACC,'center',true);txt(ctx,'CARTA 05/25',54,46,6,'#58a6ff','center');
+   box(ctx,18,52,72,86,BG,10);stroke(ctx,18,52,72,86,ACC,10);sym(ctx,'wav',54,95,18,TCOLS.wav);
+   txt(ctx,'RESPUESTAS',54,150,6,'#58a6ff','center');
+   txt(ctx,'Ana ✓',54,164,7,GREEN,'center');
+   if(t>0.45)txt(ctx,'Luis ✓',54,178,7,GREEN,'center');
+   box(ctx,10,268,88,26,ACC,8);txt(ctx,'Sig. Carta →',54,285,7,WHITE,'center');
+   // Guest phone (right)
+   box(ctx,116,14,100,330,'#0d1117',12);stroke(ctx,116,14,100,330,'#30363d',12);
+   txt(ctx,'RECEPTOR',166,32,7,WHITE,'center',true);txt(ctx,'CARTA 05/25',166,46,6,'#58a6ff','center');
+   box(ctx,130,52,72,86,BG,10);stroke(ctx,130,52,72,86,ACC,10);txt(ctx,'?',166,95,28,GRAY,'center',true);
+   ALL_SYMS.forEach((s,i)=>{const bx=120+i*20,by=150;const sel=i===2&&t>0.45;box(ctx,bx,by,18,18,sel?'rgba(63,185,80,0.25)':CARD,4);sym(ctx,s,bx+9,by+9,5,sel?GREEN:TCOLS[s]);});
+ }},
+ {label:'Al terminar, el Emisor ve el ranking grupal y puede abrir el reporte de cada participante.',
+  draw(ctx,w,h,t){
+   box(ctx,0,0,w,h,BG);
+   txt(ctx,'RESULTADOS GRUPALES',w/2,16,8,WHITE,'center',true);
+   [{name:'Ana',d:8,medal:'🥇'},{name:'Luis',d:6,medal:'🥈'},{name:'Pedro',d:5,medal:'🥉'}].forEach((p,i)=>{
+    const y=28+i*96;
+    box(ctx,10,y,200,88,'#0d1117',10);stroke(ctx,10,y,200,88,i===0&&t>0.3?ACC:'#30363d',10);
+    txt(ctx,p.medal,24,y+22,12,WHITE,'left');txt(ctx,p.name,46,y+22,10,WHITE,'left',true);
+    txt(ctx,'Toca para ver reporte →',46,y+36,6,'#58a6ff','left');
+    txt(ctx,String(p.d),196,y+22,16,GREEN,'right',true);txt(ctx,Math.round(p.d/22*100)+'%',196,y+38,7,GRAY,'right');
+    [[GREEN,'Dir',p.d],[ACC,'Pre',1],[RED,'Pos',2]].forEach(([col,l,v],j)=>{
+     const bx=46+j*52,by=y+48;box(ctx,bx,by,46,28,col+'18',6);
+     txt(ctx,String(v),bx+23,by+17,10,col,'center',true);txt(ctx,l,bx+23,by+26,5,GRAY,'center');
+    });
+    if(i===0&&t>0.4){ctx.globalAlpha=0.07+0.07*Math.sin(t*6);box(ctx,10,y,200,88,ACC,10);ctx.globalAlpha=1;}
+   });
+ }},
+ {label:'Cada participante descarga su reporte PNG individual con análisis completo.',
+  draw(ctx,w,h,t){
+   box(ctx,0,0,w,h,BG);
+   txt(ctx,'TU REPORTE',w/2,16,9,WHITE,'center',true);
+   txt(ctx,'Ana — RECEPTOR ONLINE',w/2,30,7,GRAY,'center');
+   box(ctx,10,38,200,304,WHITE,10);
+   txt(ctx,'ZENER TEST',w/2,56,9,'#111','center',true);txt(ctx,'INTG CITY',w/2,68,7,ACC,'center');
+   [[GREEN,'DIRECTOS','8/22'],[ACC,'PRECOG.','3/22'],[RED,'POSTCOG.','4/22']].forEach(([col,lbl,val],i)=>{
+    const y=80+i*34;box(ctx,14,y,184,28,'#f4f6f9',4);box(ctx,14,y,parseInt(val)/22*180,28,col+'55',4);
+    txt(ctx,lbl,60,y+18,7,'#333','center');txt(ctx,val,176,y+18,8,'#333','right',true);
+   });
+   for(let i=0;i<5;i++){if(i%2===0)box(ctx,14,188+i*20,184,20,'#f4f6f9',0);sym(ctx,ALL_SYMS[i],40,198+i*20,6,'#333');sym(ctx,ALL_SYMS[(i+2)%5],176,198+i*20,6,i===1||i===3?GREEN:'#888');if(i===1){ctx.strokeStyle=GREEN;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(50,198);ctx.lineTo(165,198);ctx.stroke();}}
+   if(t>0.45){const a=Math.min(1,(t-0.45)*3);ctx.globalAlpha=a;box(ctx,10,352,200,30,ACC,8);txt(ctx,'↓ Descargar PNG',w/2,371,8,WHITE,'center',true);ctx.globalAlpha=1;}
+ }},
+],
+};
+
+let curT='auto',curS=0,playing=true,animFr=null,stepStart=0;
+const STEP_DUR=3800;
+
+function setTutorial(name){
+    curT=name;curS=0;stepStart=performance.now();
+    ['auto','local','online'].forEach(t=>{
+        const map={auto:'Auto',local:'Local',online:'Online'};
+        const btn=document.getElementById('tutTab'+map[t]);if(!btn)return;
+        const active=t===name;
+        btn.style.background=active?'var(--accent)':'transparent';
+        btn.style.borderColor=active?'var(--accent)':'var(--border)';
+        btn.style.color=active?'#fff':'var(--gray)';
+    });
+    if(!playing){renderTut();}
+}
+window.setTutorial=setTutorial;
+
+function renderTut(){
+    const arr=steps[curT];if(!arr)return;
+    const s=arr[curS];
+    const cnv=document.getElementById('tutCanvas');if(!cnv)return;
+    const ctx=cnv.getContext('2d');
+    ctx.clearRect(0,0,220,380);
+    const elapsed=performance.now()-stepStart;
+    const progress=Math.min(1,elapsed/STEP_DUR);
+    try{s.draw(ctx,220,380,progress);}catch(e){}
+    const lbl=document.getElementById('tutStepLabel');if(lbl)lbl.textContent=s.label;
+    const dots=document.getElementById('tutStepDots');
+    if(dots)dots.innerHTML=arr.map((_,i)=>'<div style="width:'+(i===curS?18:8)+'px;height:8px;border-radius:4px;background:'+(i===curS?'var(--accent)':'#30363d')+';transition:all 0.3s;"></div>').join('');
+    if(playing&&elapsed>=STEP_DUR){curS=(curS+1)%arr.length;stepStart=performance.now();}
+    if(playing)animFr=requestAnimationFrame(renderTut);
+}
+
+function tutPlayPause(){
+    playing=!playing;
+    const btn=document.getElementById('tutPlayBtn');if(btn)btn.textContent=playing?'⏸':'▶';
+    if(playing){stepStart=performance.now()-(STEP_DUR*0.2|0);renderTut();}
+    else cancelAnimationFrame(animFr);
+}
+function tutNext(){const arr=steps[curT];curS=(curS+1)%arr.length;stepStart=performance.now();if(!playing)renderTut();}
+function tutPrev(){const arr=steps[curT];curS=(curS-1+arr.length)%arr.length;stepStart=performance.now();if(!playing)renderTut();}
+window.tutPlayPause=tutPlayPause;window.tutNext=tutNext;window.tutPrev=tutPrev;
+
+// Hook into showHelp
+const _origShowHelp=window.showHelp;
+window.showHelp=function(){
+    if(_origShowHelp)_origShowHelp();
+    setTimeout(function(){
+        curT='auto';curS=0;stepStart=performance.now();playing=true;
+        const btn=document.getElementById('tutPlayBtn');if(btn)btn.textContent='⏸';
+        setTutorial('auto');renderTut();
+    },120);
+};
+})();
+// ── END TUTORIAL ENGINE ────────────────────────────────────────────────────
+
 function trimToPlayed(logsArr, deckArr){
     if(!logsArr||logsArr.length===0) return {logs:[],deck:[],count:0};
     // Find last index with a REAL answer (not null, undefined, empty, or 'skip')
