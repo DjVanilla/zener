@@ -36,6 +36,7 @@
         .opt-btn{background:#21262d;border:1px solid var(--border);border-radius:12px;padding:15px 5px;cursor:pointer;text-align:center;transition:all 0.2s;}
         .opt-btn:hover{border-color:var(--text);transform:translateY(-2px);}
         .opt-btn:active{background:var(--accent);transform:scale(0.95);}
+        .opt-btn:focus{outline:none;}
         .opt-btn svg{width:30px;height:30px;margin-bottom:8px;}
         .opt-btn span{display:block;font-size:0.55rem;color:var(--gray);text-transform:uppercase;font-weight:bold;}
         .stats-hud{display:grid;grid-template-columns:repeat(3,1fr);gap:15px;margin-bottom:25px;}
@@ -1341,10 +1342,16 @@ function startSession(){
             const shadowOpacity=isWav&&dc!=='#000000'?0.22:0.65;
             btn.innerHTML='<svg viewBox="0 0 100 100" stroke="'+dc+'" style="filter:drop-shadow(0 0 2px rgba(255,255,255,'+shadowOpacity+'))">'+SVGS[s.id]+'</svg><span>'+s.n+'</span>';
             btn.onclick=function(){
+                this.blur(); // remove focus ring immediately on tap
                 haptic(HAPTIC.tap);
                 logs.push(s.id); updateStats(); step++;
-                if(step<totalCards) drawStep();
-                else { setTimeout(function(){playAchievementSound(); haptic(HAPTIC.end);},50); goToFinalNotes(); }
+                if(step<totalCards){
+                    drawStep();
+                    // After card flip completes (300ms), blur any remaining focused element
+                    setTimeout(function(){
+                        if(document.activeElement) document.activeElement.blur();
+                    },320);
+                } else { setTimeout(function(){playAchievementSound(); haptic(HAPTIC.end);},50); goToFinalNotes(); }
             };
             grid.appendChild(btn);
         });
@@ -3095,6 +3102,7 @@ function buildSyncResponseGrid(){
                 b.innerHTML='<svg viewBox="0 0 100 100" stroke="'+dc+'" style="filter:drop-shadow(0 0 2px rgba(255,255,255,'+shadowOpacity+'))">'+SVGS[s.id]+'</svg><span>'+s.n+'</span>';
                 b.onclick=(function(pName,sId){
                     return function(){
+                        this.blur();
                         haptic(HAPTIC.tap);
                         syncLogs[pName][syncStep]=sId;
                         buildSyncResponseGrid();
@@ -3896,6 +3904,7 @@ function startSyncGuestSession(room, guestName){
         btn.innerHTML='<svg viewBox="0 0 100 100" stroke="'+dc+'" style="filter:drop-shadow(0 0 2px rgba(255,255,255,'+shadowOpacity+'))">'+SVGS[s.id]+'</svg><span>'+s.n+'</span>';
         btn.onclick=(function(sId){return function(){
             if(!uid) return;
+            this.blur();
             haptic(HAPTIC.tap);
             rtdb.ref('sync/'+syncRoomId+'/members/'+uid+'/answers/'+syncStep).set(sId);
             // Show waiting message, hide grid
