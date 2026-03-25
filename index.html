@@ -37,6 +37,8 @@
         .opt-btn:hover{border-color:var(--text);transform:translateY(-2px);}
         .opt-btn:active{background:var(--accent);transform:scale(0.95);}
         .opt-btn:focus{outline:none;}
+        .opt-btn:focus-visible{outline:none;}
+        .opt-btn.was-selected{border-color:var(--border)!important;background:#21262d!important;outline:none!important;box-shadow:none!important;}
         .opt-btn svg{width:30px;height:30px;margin-bottom:8px;}
         .opt-btn span{display:block;font-size:0.55rem;color:var(--gray);text-transform:uppercase;font-weight:bold;}
         .stats-hud{display:grid;grid-template-columns:repeat(3,1fr);gap:15px;margin-bottom:25px;}
@@ -1342,12 +1344,12 @@ function startSession(){
             const shadowOpacity=isWav&&dc!=='#000000'?0.22:0.65;
             btn.innerHTML='<svg viewBox="0 0 100 100" stroke="'+dc+'" style="filter:drop-shadow(0 0 2px rgba(255,255,255,'+shadowOpacity+'))">'+SVGS[s.id]+'</svg><span>'+s.n+'</span>';
             btn.onclick=function(){
-                this.blur(); // remove focus ring immediately on tap
+                this.blur();
+                this.classList.add('was-selected');
                 haptic(HAPTIC.tap);
                 logs.push(s.id); updateStats(); step++;
                 if(step<totalCards){
                     drawStep();
-                    // After card flip completes (300ms), blur any remaining focused element
                     setTimeout(function(){
                         if(document.activeElement) document.activeElement.blur();
                     },320);
@@ -1361,13 +1363,19 @@ function startSession(){
 function drawStep(){
     document.getElementById('uiStep').innerText=`CARTA ${String(step+1).padStart(2,'0')} / ${totalCards}`;
     const slot=document.getElementById('uiCardSlot');
-    // Card flip animation
     slot.style.transition='transform 0.3s ease';
     slot.style.transform='rotateY(90deg)';
     setTimeout(function(){
         if(isBlind) slot.innerHTML='<div class="hidden-mark">?</div>';
         else{const card=deck[step];slot.innerHTML=`<svg viewBox="0 0 100 100" stroke="${card.renderColor}">${SVGS[card.id]}</svg>`;}
         slot.style.transform='rotateY(0deg)';
+        // Reset ALL option buttons to pristine state when new card is revealed
+        // Removes was-selected class + clears any inline focus/active styles injected by browser
+        const grid=document.getElementById('uiOptionsGrid');
+        if(grid) Array.from(grid.querySelectorAll('.opt-btn')).forEach(function(b){
+            b.classList.remove('was-selected');
+            b.style.cssText=''; // wipe ALL inline styles — the CSS class handles appearance
+        });
     },300);
 }
 function updateStats(){
