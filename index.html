@@ -3720,8 +3720,8 @@ function buildRankingCanvas(){
     const playedCards=rankingParticipants.length>0?
         Math.max(...rankingParticipants.map(function(p){return p.total-(p.skipped||0);})):totalCards;
 
-    const infoLine=dateStr+' · Modo '+modeLabel+' · '+totalCards+' Cartas'+
-        (totalSkipped>0?' ('+totalSkipped+' omitida'+(totalSkipped===1?'':'s')+')')+'  · '+colorLevelLabel;
+    const skippedStr=totalSkipped>0?' ('+totalSkipped+' omitida'+(totalSkipped===1?'':'s')+')':'';
+    const infoLine=dateStr+' · Modo '+modeLabel+' · '+totalCards+' Cartas'+skippedStr+' · '+colorLevelLabel;
 
     const rowH=96, headerH=90, infoH=28, footerH=32;
     cnv.width=800;
