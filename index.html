@@ -3731,13 +3731,14 @@ function buildRankingCanvas(){
     const dateStr=new Date().toLocaleDateString('es-MX');
     const year=new Date().getFullYear();
 
-    // Count total skipped across all participants
-    const totalSkipped=rankingParticipants.reduce(function(sum,p){return sum+(p.skipped||0);},0);
-    // Played cards = deck - skipped (use max to handle edge cases)
-    const playedCards=rankingParticipants.length>0?
-        Math.max(...rankingParticipants.map(function(p){return p.total-(p.skipped||0);})):totalCards;
+    // Cartas omitidas de la SESIÓN = totalCards - cartas efectivamente jugadas por el participante más avanzado
+    // No sumar omitidas de cada participante — eso multiplica el número por la cantidad de gente
+    const maxPlayed=rankingParticipants.length>0
+        ? Math.max(...rankingParticipants.map(function(p){return p.total-(p.skipped||0);}))
+        : totalCards;
+    const sessionSkipped=totalCards-maxPlayed;
 
-    const skippedStr=totalSkipped>0?' ('+totalSkipped+' omitida'+(totalSkipped===1?'':'s')+')':'';
+    const skippedStr=sessionSkipped>0?' ('+sessionSkipped+' omitida'+(sessionSkipped===1?'':'s')+')':'';
     const infoLine=dateStr+' · Modo '+modeLabel+' · '+totalCards+' Cartas'+skippedStr+' · '+colorLevelLabel;
 
     const rowH=96, headerH=90, infoH=28, footerH=32;
