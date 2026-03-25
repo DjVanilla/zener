@@ -2899,7 +2899,8 @@ async function recoverHostSession(code){
 
     const st=roomData.status;
 
-    if(st==='waiting'){
+    if(st==='waiting'||syncDeck.length===0){
+        // Waiting room OR deck not yet created — go back to waiting room
         hideAll();
         document.getElementById('scr-sync-host').classList.remove('hidden');
         document.getElementById('syncHostRoomCode').textContent='Código: '+code;
@@ -2908,7 +2909,6 @@ async function recoverHostSession(code){
         if(ef) ef.value=syncEmisorName;
         rtdb.ref('sync/'+code+'/status').set('waiting');
         rtdb.ref('sync/'+code+'/hostOnline').set(true);
-        // Register onDisconnect for waiting room
         rtdb.ref('sync/'+code+'/hostOnline').onDisconnect().set(false);
         rtdb.ref('sync/'+code+'/status').onDisconnect().set('host_away');
         const ref=rtdb.ref('sync/'+code+'/members');
@@ -2924,14 +2924,7 @@ async function recoverHostSession(code){
         window.scrollTo(0,0);
 
     } else if(st==='active'||st==='host_away'||st==='countdown'){
-        if(syncDeck.length===0){
-            const deckInfo='deck type='+typeof deckRaw+' keys='+(deckRaw&&typeof deckRaw==='object'?Object.keys(deckRaw).length:'n/a')+' isArr='+Array.isArray(deckRaw);
-            console.error('[Recovery] Deck empty after conversion. Raw:', JSON.stringify(deckRaw).slice(0,300));
-            showToast('Mazo vacío ('+deckInfo+') — revisa la consola','#f85149');
-            clearHostSession(); return;
-        }
         // CRITICAL: Cancel pending onDisconnect handlers BEFORE writing new status
-        // Otherwise the old onDisconnect queue overwrites 'active' back to 'host_away'
         try{
             await rtdb.ref('sync/'+code+'/status').onDisconnect().cancel();
             await rtdb.ref('sync/'+code+'/hostOnline').onDisconnect().cancel();
