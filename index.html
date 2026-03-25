@@ -1330,7 +1330,7 @@ function startSession(){
         document.getElementById('scr-test').classList.remove('hidden');
         document.querySelector('.stats-hud').style.visibility='hidden';
         // Init swipe-to-finalize
-        initSwipe('finalizarTrack','finalizarThumb',function(){goToFinalNotes();});
+        initSwipe('finalizarTrack','finalizarThumb',function(){ haptic(HAPTIC.swipe); goToFinalNotes(); });
         const grid=document.getElementById('uiOptionsGrid');
         grid.innerHTML='';
         SYMBOLS.forEach(function(s){
@@ -1340,9 +1340,10 @@ function startSession(){
             const shadowOpacity=isWav&&dc!=='#000000'?0.22:0.65;
             btn.innerHTML='<svg viewBox="0 0 100 100" stroke="'+dc+'" style="filter:drop-shadow(0 0 2px rgba(255,255,255,'+shadowOpacity+'))">'+SVGS[s.id]+'</svg><span>'+s.n+'</span>';
             btn.onclick=function(){
+                haptic(HAPTIC.tap);
                 logs.push(s.id); updateStats(); step++;
                 if(step<totalCards) drawStep();
-                else { setTimeout(function(){playAchievementSound();},50); goToFinalNotes(); }
+                else { setTimeout(function(){playAchievementSound(); haptic(HAPTIC.end);},50); goToFinalNotes(); }
             };
             grid.appendChild(btn);
         });
@@ -2094,7 +2095,19 @@ function drawLink(ctx,x1,y1,x2,y2,c,w){
 // Only cards with a real answer (not null/undefined/empty/'skip') count as played.
 // 'skip' means the host force-advanced without the participant answering — 
 // those at the tail are treated as unplayed and removed from the report.
-// ── TUTORIAL ANIMATION ENGINE ─────────────────────────────────────────────
+// ── HAPTIC FEEDBACK ───────────────────────────────────────────────────────
+// Works on Android Chrome/Brave/Firefox. Silent on iOS (not supported).
+function haptic(pattern){
+    try{ if(navigator.vibrate) navigator.vibrate(pattern); }catch(e){}
+}
+// Patterns
+const HAPTIC={
+    tap:     [15],           // any selection — quick confirm
+    hit:     [30,20,40],     // direct match revealed — double pulse
+    end:     [50,30,80,30,50], // session complete
+    swipe:   [80],           // swipe-to-end confirmed
+    skip:    [8],            // force skip
+};
 (function(){
 'use strict';
 const TSYMS_DRAW={
@@ -2838,7 +2851,7 @@ function startSyncLocal(){
         hideAll();
         document.getElementById('scr-sync-session').classList.remove('hidden');
         // Init swipe-to-finalize
-        initSwipe('syncFinalizarTrack','syncFinalizarThumb',function(){goToSyncFinalNotes();});
+        initSwipe('syncFinalizarTrack','syncFinalizarThumb',function(){ haptic(HAPTIC.swipe); goToSyncFinalNotes(); });
         drawSyncStep();
         window.scrollTo(0,0);
     });
@@ -2901,6 +2914,7 @@ function buildSyncResponseGrid(){
                 b.innerHTML='<svg viewBox="0 0 100 100" stroke="'+dc+'" style="filter:drop-shadow(0 0 2px rgba(255,255,255,'+shadowOpacity+'))">'+SVGS[s.id]+'</svg><span>'+s.n+'</span>';
                 b.onclick=(function(pName,sId){
                     return function(){
+                        haptic(HAPTIC.tap);
                         syncLogs[pName][syncStep]=sId;
                         buildSyncResponseGrid();
                     };
@@ -2926,7 +2940,7 @@ function syncNextCard(){
     syncStep++;
     if(syncStep>=syncDeck.length){
         // Play achievement sound
-        playAchievementSound();
+        playAchievementSound(); haptic(HAPTIC.end);
         // Show completion notice instead of jumping abruptly
         const navBtns=document.getElementById('syncNavButtons');
         const notice=document.getElementById('syncCompletionNotice');
@@ -3541,10 +3555,11 @@ function showSyncHostSession(){
     syncListeners.push(function(){answersRef.off('value',offA);});
     // Init swipe-to-end with confirmation dialog
     initSwipe('syncEndTrack','syncEndThumb',function(){
+        haptic(HAPTIC.swipe);
         showConfirm(
             '¿Terminar sesión?',
             '¿Confirmas que deseas terminar la sesión? Los participantes serán llevados a sus observaciones finales.',
-            function(){ endSyncOnlineSession(); }
+            function(){ haptic(HAPTIC.end); endSyncOnlineSession(); }
         );
     });
     window.scrollTo(0,0);
@@ -3700,6 +3715,7 @@ function startSyncGuestSession(room, guestName){
         btn.innerHTML='<svg viewBox="0 0 100 100" stroke="'+dc+'" style="filter:drop-shadow(0 0 2px rgba(255,255,255,'+shadowOpacity+'))">'+SVGS[s.id]+'</svg><span>'+s.n+'</span>';
         btn.onclick=(function(sId){return function(){
             if(!uid) return;
+            haptic(HAPTIC.tap);
             rtdb.ref('sync/'+syncRoomId+'/members/'+uid+'/answers/'+syncStep).set(sId);
             // Show waiting message, hide grid
             if(gridEl) gridEl.style.opacity='0.3';
