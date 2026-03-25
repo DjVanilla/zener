@@ -46,6 +46,16 @@
         .btn-outline{background:transparent;border:1px solid var(--border);color:var(--gray);padding:14px;border-radius:12px;margin-top:15px;width:100%;cursor:pointer;font-weight:bold;text-transform:uppercase;font-size:0.8rem;-webkit-appearance:none;appearance:none;}
         canvas{width:100%;height:auto;display:block;background:white;border-radius:12px;margin-top:20px;box-shadow:0 0 20px rgba(0,0,0,0.4);}
         canvas.dark-canvas{background:#0d1117;}
+        /* ── REPORT ZOOM VIEWER ── */
+        #reportZoomOverlay{display:none;position:fixed;inset:0;background:#000;z-index:9999;flex-direction:column;touch-action:none;}
+        #reportZoomOverlay.active{display:flex;}
+        #reportZoomBar{flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:rgba(0,0,0,0.8);border-bottom:1px solid #222;}
+        #reportZoomTitle{font-size:0.75rem;color:#8b949e;font-weight:bold;text-transform:uppercase;letter-spacing:1px;}
+        #reportZoomClose{background:transparent;border:1px solid #30363d;color:#8b949e;padding:6px 14px;border-radius:8px;cursor:pointer;font-size:0.75rem;font-weight:bold;}
+        #reportZoomContainer{flex:1;overflow:hidden;display:flex;align-items:flex-start;justify-content:center;padding:12px;}
+        #reportZoomImg{max-width:100%;height:auto;border-radius:8px;transform-origin:0 0;user-select:none;-webkit-user-select:none;}
+        .btn-zoom{display:block;width:100%;background:transparent;border:1px solid var(--border);color:#58a6ff;padding:11px;border-radius:12px;margin-top:10px;cursor:pointer;font-weight:bold;text-transform:uppercase;font-size:0.78rem;letter-spacing:1px;-webkit-appearance:none;appearance:none;}
+
         .hidden{display:none !important;}
         .sess-row{display:flex;align-items:center;justify-content:space-between;background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:10px;}
         .sess-num{color:var(--text);font-weight:bold;font-family:monospace;font-size:0.9rem;}
@@ -74,6 +84,17 @@
 </head>
 <body>
 <div id="toast"></div>
+
+<!-- ── REPORT ZOOM VIEWER ──────────────────────────────────────────────── -->
+<div id="reportZoomOverlay">
+    <div id="reportZoomBar">
+        <span id="reportZoomTitle">Reporte</span>
+        <button id="reportZoomClose" onclick="closeReportZoom()">✕ Cerrar</button>
+    </div>
+    <div id="reportZoomContainer">
+        <img id="reportZoomImg" src="" alt="Reporte" draggable="false"/>
+    </div>
+</div>
 <div id="app" style="width:100%;max-width:500px;min-height:100vh;">
 
 <!-- PANTALLA 1: CONFIGURACIÓN -->
@@ -201,6 +222,7 @@
     <h1 id="reportTitle">Reporte de Protocolo</h1>
     <div class="subtitle" id="reportSubtitle">Datos Procesados</div>
     <canvas id="cnvReport"></canvas>
+    <button class="btn-zoom" onclick="openReportZoom('cnvReport','Reporte Auto Test')">🔍 Ver y ampliar reporte</button>
     <button class="btn-primary" style="margin-top:25px;" onclick="downloadPNG('cnvReport',document.getElementById('inReceptor').value)">Descargar como PNG</button>
     <button class="btn-outline" onclick="saveSession()" id="btnSave">Guardar Sesión en Historial</button>
     <button class="btn-outline" onclick="resetApp()">Nueva Prueba</button>
@@ -293,6 +315,7 @@
     <h1>Reporte de Sesión</h1>
     <div class="subtitle" id="sessReportSubtitle">Sesión #—</div>
     <canvas id="cnvSessReport"></canvas>
+    <button class="btn-zoom" onclick="openReportZoom('cnvSessReport','Reporte de Sesión')">🔍 Ver y ampliar reporte</button>
     <button class="btn-primary" style="margin-top:25px;" onclick="downloadPNG('cnvSessReport',window._sessReceptor||'')">Descargar como PNG</button>
     <button class="btn-outline" onclick="showHistory()">Volver al Historial</button>
 </div>
@@ -724,6 +747,7 @@
     <!-- Active participant report -->
     <div id="syncReportContent">
         <canvas id="cnvSyncReport"></canvas>
+        <button class="btn-zoom" onclick="openReportZoom('cnvSyncReport','Reporte INTG Sync')">🔍 Ver y ampliar reporte</button>
         <button class="btn-primary" style="margin-top:16px;" onclick="downloadSyncReport()">↓ Descargar Reporte</button>
     </div>
 
@@ -902,6 +926,7 @@
     <h1>Mi Reporte</h1>
     <div class="subtitle" id="syncGuestReportSubtitle">INTG Sync</div>
     <canvas id="cnvSyncGuestReport"></canvas>
+    <button class="btn-zoom" onclick="openReportZoom('cnvSyncGuestReport','Mi Reporte INTG Sync')">🔍 Ver y ampliar reporte</button>
     <button class="btn-primary" style="margin-top:16px;" onclick="downloadGuestReport()">↓ Descargar Reporte</button>
     <button class="btn-outline" onclick="showSetupWithThanks()" style="margin-top:10px;border-color:#1f6feb;color:#58a6ff;">⌂ Volver al Inicio</button>
 </div>
@@ -942,6 +967,7 @@
     <h1 id="rankingDetailTitle">Reporte Individual</h1>
     <div class="subtitle" id="rankingDetailSubtitle"></div>
     <canvas id="cnvRankingDetail"></canvas>
+    <button class="btn-zoom" onclick="openReportZoom('cnvRankingDetail','Reporte de Participante')">🔍 Ver y ampliar reporte</button>
     <button class="btn-primary" style="margin-top:16px;" onclick="downloadRankingDetail()">↓ Descargar PNG</button>
     <button class="btn-outline" onclick="showSyncRanking()" style="margin-top:10px;">← Regresar al Ranking</button>
 </div>
@@ -960,6 +986,7 @@
     <div class="subtitle" id="rankingHistReportSubtitle"></div>
     <div id="rankingHistReportTabs" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;"></div>
     <canvas id="cnvRankingHistReport"></canvas>
+    <button class="btn-zoom" onclick="openReportZoom('cnvRankingHistReport','Reporte Historial')">🔍 Ver y ampliar reporte</button>
     <button class="btn-primary" style="margin-top:16px;" onclick="downloadHistoryReport()">↓ Descargar PNG</button>
     <button class="btn-outline" onclick="showRankingHistory()" style="margin-top:10px;">← Regresar al Historial</button>
 </div>
@@ -2095,7 +2122,140 @@ function drawLink(ctx,x1,y1,x2,y2,c,w){
 // Only cards with a real answer (not null/undefined/empty/'skip') count as played.
 // 'skip' means the host force-advanced without the participant answering — 
 // those at the tail are treated as unplayed and removed from the report.
-// ── HAPTIC FEEDBACK ───────────────────────────────────────────────────────
+// ── REPORT ZOOM VIEWER ────────────────────────────────────────────────────
+function openReportZoom(canvasId, title){
+    const cnv=document.getElementById(canvasId);
+    if(!cnv) return;
+    const img=document.getElementById('reportZoomImg');
+    const overlay=document.getElementById('reportZoomOverlay');
+    document.getElementById('reportZoomTitle').textContent=title||'Reporte';
+    // Convert canvas to data URL at full resolution
+    img.src=cnv.toDataURL('image/png');
+    img.style.transform='scale(1)';
+    img.style.transformOrigin='0 0';
+    overlay.classList.add('active');
+    // Lock body scroll
+    document.body.style.overflow='hidden';
+    // Init pinch/pan on the image
+    _initZoomGestures(img, document.getElementById('reportZoomContainer'));
+}
+
+function closeReportZoom(){
+    const overlay=document.getElementById('reportZoomOverlay');
+    overlay.classList.remove('active');
+    document.body.style.overflow='';
+    _destroyZoomGestures();
+}
+
+// ── Pinch-to-zoom + pan + double-tap-reset engine ──────────────────────
+let _zoomState=null;
+function _initZoomGestures(img, container){
+    _destroyZoomGestures();
+    let scale=1, lastScale=1;
+    let originX=0, originY=0;
+    let panX=0, panY=0, lastPanX=0, lastPanY=0;
+    let lastTap=0;
+
+    const MIN_SCALE=1, MAX_SCALE=6;
+
+    function applyTransform(){
+        // Clamp pan so image can't go off-screen completely
+        const cw=container.clientWidth, ch=container.clientHeight;
+        const iw=img.naturalWidth*(scale/window.devicePixelRatio)||img.clientWidth*scale;
+        const ih=img.naturalHeight*(scale/window.devicePixelRatio)||img.clientHeight*scale;
+        const maxPanX=Math.max(0, iw-cw);
+        const maxPanY=Math.max(0, ih-ch);
+        panX=Math.max(-maxPanX, Math.min(0, panX));
+        panY=Math.max(-maxPanY, Math.min(0, panY));
+        img.style.transformOrigin='0 0';
+        img.style.transform='translate('+panX+'px,'+panY+'px) scale('+scale+')';
+    }
+
+    function getDistance(t1,t2){
+        const dx=t1.clientX-t2.clientX, dy=t1.clientY-t2.clientY;
+        return Math.sqrt(dx*dx+dy*dy);
+    }
+    function getMidpoint(t1,t2){
+        return {x:(t1.clientX+t2.clientX)/2, y:(t1.clientY+t2.clientY)/2};
+    }
+
+    let startDist=0, startScale=1, startMidX=0, startMidY=0;
+    let startPanX=0, startPanY=0, singleStartX=0, singleStartY=0;
+    let isPinching=false, isDragging=false;
+
+    function onTouchStart(e){
+        if(e.touches.length===2){
+            isPinching=true; isDragging=false;
+            startDist=getDistance(e.touches[0],e.touches[1]);
+            startScale=scale;
+            const mid=getMidpoint(e.touches[0],e.touches[1]);
+            const rect=img.getBoundingClientRect();
+            startMidX=mid.x-rect.left;
+            startMidY=mid.y-rect.top;
+            startPanX=panX; startPanY=panY;
+        } else if(e.touches.length===1){
+            isPinching=false;
+            // Double tap to reset
+            const now=Date.now();
+            if(now-lastTap<300){
+                scale=1; panX=0; panY=0;
+                applyTransform();
+                lastTap=0; return;
+            }
+            lastTap=now;
+            isDragging=true;
+            singleStartX=e.touches[0].clientX-panX;
+            singleStartY=e.touches[0].clientY-panY;
+        }
+    }
+
+    function onTouchMove(e){
+        e.preventDefault();
+        if(e.touches.length===2&&isPinching){
+            const dist=getDistance(e.touches[0],e.touches[1]);
+            const newScale=Math.min(MAX_SCALE, Math.max(MIN_SCALE, startScale*(dist/startDist)));
+            // Zoom towards pinch midpoint
+            const scaleDiff=newScale/scale;
+            panX=startMidX*(1-newScale/startScale)+startPanX*(newScale/startScale);
+            panY=startMidY*(1-newScale/startScale)+startPanY*(newScale/startScale);
+            scale=newScale;
+            applyTransform();
+        } else if(e.touches.length===1&&isDragging&&!isPinching){
+            panX=e.touches[0].clientX-singleStartX;
+            panY=e.touches[0].clientY-singleStartY;
+            applyTransform();
+        }
+    }
+
+    function onTouchEnd(e){
+        if(e.touches.length<2) isPinching=false;
+        if(e.touches.length===0) isDragging=false;
+        if(scale<MIN_SCALE){ scale=MIN_SCALE; panX=0; panY=0; applyTransform(); }
+    }
+
+    // Close on overlay background tap (not on image)
+    function onOverlayTap(e){
+        if(e.target===container) closeReportZoom();
+    }
+
+    img.addEventListener('touchstart', onTouchStart, {passive:false});
+    img.addEventListener('touchmove',  onTouchMove,  {passive:false});
+    img.addEventListener('touchend',   onTouchEnd,   {passive:true});
+    container.addEventListener('touchend', onOverlayTap, {passive:true});
+
+    _zoomState={img, container, onTouchStart, onTouchMove, onTouchEnd, onOverlayTap};
+}
+
+function _destroyZoomGestures(){
+    if(!_zoomState) return;
+    const {img, container, onTouchStart, onTouchMove, onTouchEnd, onOverlayTap}=_zoomState;
+    img.removeEventListener('touchstart', onTouchStart);
+    img.removeEventListener('touchmove',  onTouchMove);
+    img.removeEventListener('touchend',   onTouchEnd);
+    container.removeEventListener('touchend', onOverlayTap);
+    _zoomState=null;
+}
+// ── END REPORT ZOOM VIEWER ────────────────────────────────────────────────
 // Works on Android Chrome/Brave/Firefox. Silent on iOS (not supported).
 function haptic(pattern){
     try{
