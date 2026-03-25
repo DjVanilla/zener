@@ -33,11 +33,12 @@
         .card-display svg{width:70%;height:70%;}
         .hidden-mark{font-size:5rem;color:#161b22;font-weight:bold;font-family:serif;}
         .options-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:30px 0;}
-        .opt-btn{background:#21262d;border:1px solid var(--border);border-radius:12px;padding:15px 5px;cursor:pointer;text-align:center;transition:all 0.2s;}
+        .opt-btn{background:#21262d;border:1px solid var(--border);border-radius:12px;padding:15px 5px;cursor:pointer;text-align:center;transition:border-color 0.15s,background 0.15s,transform 0.15s;}
         .opt-btn:hover{border-color:var(--text);transform:translateY(-2px);}
         .opt-btn:active{background:var(--accent);transform:scale(0.95);}
         .opt-btn:focus{outline:none;}
         .opt-btn:focus-visible{outline:none;}
+        .opt-btn.selected{border-color:#58a6ff;box-shadow:0 0 0 2px rgba(88,166,255,0.45);}
         .opt-btn svg{width:30px;height:30px;margin-bottom:8px;}
         .opt-btn span{display:block;font-size:0.55rem;color:var(--gray);text-transform:uppercase;font-weight:bold;}
         .stats-hud{display:grid;grid-template-columns:repeat(3,1fr);gap:15px;margin-bottom:25px;}
@@ -1343,6 +1344,14 @@ function startSession(){
             const shadowOpacity=isWav&&dc!=='#000000'?0.22:0.65;
             btn.innerHTML='<svg viewBox="0 0 100 100" stroke="'+dc+'" style="filter:drop-shadow(0 0 2px rgba(255,255,255,'+shadowOpacity+'))">'+SVGS[s.id]+'</svg><span>'+s.n+'</span>';
             btn.onclick=function(){
+                // Show selection feedback via CSS class
+                const tapped=this;
+                const grid=document.getElementById('uiOptionsGrid');
+                // Remove from all buttons first
+                if(grid) Array.from(grid.querySelectorAll('.opt-btn')).forEach(function(b){b.classList.remove('selected');});
+                tapped.classList.add('selected');
+                // Remove outline at 150ms — before card flip reveals at 300ms
+                setTimeout(function(){ tapped.classList.remove('selected'); },150);
                 this.blur();
                 haptic(HAPTIC.tap);
                 logs.push(s.id); updateStats(); step++;
@@ -1364,11 +1373,6 @@ function drawStep(){
         if(isBlind) slot.innerHTML='<div class="hidden-mark">?</div>';
         else{const card=deck[step];slot.innerHTML=`<svg viewBox="0 0 100 100" stroke="${card.renderColor}">${SVGS[card.id]}</svg>`;}
         slot.style.transform='rotateY(0deg)';
-        // Blur whatever has focus at the exact moment the new card appears
-        // This removes the blue outline from the previously selected button
-        if(document.activeElement && document.activeElement.blur){
-            document.activeElement.blur();
-        }
     },300);
 }
 function updateStats(){
