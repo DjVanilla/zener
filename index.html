@@ -2854,55 +2854,67 @@ function showHostRecoveryPrompt(code, room){
 function recoverHostSession(code, room){
     const user=currentUser||(auth&&auth.currentUser);
     if(!user||!rtdb) return;
-    syncRoomId=code;
-    syncRole='host';
-    colorLevel=room.colorLevel||1;
-    totalCards=room.totalCards||25;
-    isBlind=room.blind||false;
-    syncEmisorName=room.emisorName||room.hostName||user.displayName||'Emisor';
-    syncDeck=room.deck||[];
-    syncStep=room.currentCard||0;
 
-    // Re-register presence + onDisconnect
-    const presRef=rtdb.ref('sync/'+code+'/hostOnline');
-    presRef.set(true);
-    presRef.onDisconnect().set(false);
-    rtdb.ref('sync/'+code+'/status').onDisconnect().set('host_away');
+    // Always fetch fresh room data from Firebase — sessionStorage only has code+uid
+    // The deck, currentCard, colorLevel etc. must come from Firebase, not the stale local snapshot
+    rtdb.ref('sync/'+code).once('value').then(function(freshSnap){
+        if(!freshSnap.exists()){ clearHostSession(); showToast('La sala ya no existe','#f85149'); return; }
+        const freshRoom=freshSnap.val()||{};
+        if(freshRoom.status==='ended'){ clearHostSession(); showToast('La sesión ya terminó','#f85149'); return; }
 
-    if(room.status==='waiting'){
-        // Back to waiting room
-        hideAll();
-        document.getElementById('scr-sync-host').classList.remove('hidden');
-        document.getElementById('syncHostRoomCode').textContent='Código: '+code;
-        document.getElementById('syncCodeBig').textContent=code;
-        const emisorField=document.getElementById('syncHostEmisorName');
-        if(emisorField) emisorField.value=syncEmisorName;
-        // Restore status to waiting
-        rtdb.ref('sync/'+code+'/status').set('waiting');
-        rtdb.ref('sync/'+code+'/hostOnline').set(true);
-        // Listen for members
-        const ref=rtdb.ref('sync/'+code+'/members');
-        const off=ref.on('value',function(snap){
-            const members=snap.val()||{};
-            const list=Object.values(members);
-            const el=document.getElementById('syncMembersList');
-            if(el) el.innerHTML=list.length===0
-                ?'<span style="color:var(--gray);">Esperando participantes...</span>'
-                :list.map(function(m){return '<div style="padding:3px 0;color:var(--white);">● '+m.name+'</div>';}).join('');
-        });
-        syncListeners.push(function(){ref.off('value',off);});
-        showToast('Sala recuperada: '+code+' ✓','#3fb950');
-        window.scrollTo(0,0);
-    } else if(room.status==='active'||room.status==='host_away'||room.status==='countdown'){
-        // Back to active session
-        rtdb.ref('sync/'+code+'/status').set('active');
-        rtdb.ref('sync/'+code+'/hostOnline').set(true);
-        showSyncHostSession();
-        showToast('Sesión recuperada: '+code+' ✓','#3fb950');
-    } else {
-        clearHostSession();
-        showToast('La sesión ya terminó','#f85149');
-    }
+        // Restore all globals from fresh Firebase data
+        syncRoomId=code;
+        syncRole='host';
+        colorLevel=freshRoom.colorLevel||1;
+        totalCards=freshRoom.totalCards||25;
+        isBlind=freshRoom.blind||false;
+        syncEmisorName=freshRoom.emisorName||freshRoom.hostName||user.displayName||'Emisor';
+        syncDeck=Array.isArray(freshRoom.deck)&&freshRoom.deck.length>0 ? freshRoom.deck : [];
+        syncStep=freshRoom.currentCard||0;
+
+        // Re-register presence + onDisconnect
+        const presRef=rtdb.ref('sync/'+code+'/hostOnline');
+        presRef.set(true);
+        presRef.onDisconnect().set(false);
+        rtdb.ref('sync/'+code+'/status').onDisconnect().set('host_away');
+
+        if(freshRoom.status==='waiting'){
+            hideAll();
+            document.getElementById('scr-sync-host').classList.remove('hidden');
+            document.getElementById('syncHostRoomCode').textContent='Código: '+code;
+            document.getElementById('syncCodeBig').textContent=code;
+            const emisorField=document.getElementById('syncHostEmisorName');
+            if(emisorField) emisorField.value=syncEmisorName;
+            rtdb.ref('sync/'+code+'/status').set('waiting');
+            const ref=rtdb.ref('sync/'+code+'/members');
+            const off=ref.on('value',function(snap){
+                const members=snap.val()||{};
+                const list=Object.values(members);
+                const el=document.getElementById('syncMembersList');
+                if(el) el.innerHTML=list.length===0
+                    ?'<span style="color:var(--gray);">Esperando participantes...</span>'
+                    :list.map(function(m){return '<div style="padding:3px 0;color:var(--white);">● '+m.name+'</div>';}).join('');
+            });
+            syncListeners.push(function(){ref.off('value',off);});
+            showToast('Sala recuperada: '+code+' ✓','#3fb950');
+            window.scrollTo(0,0);
+        } else if(freshRoom.status==='active'||freshRoom.status==='host_away'||freshRoom.status==='countdown'){
+            // Validate that deck was recovered before entering session
+            if(syncDeck.length===0){
+                showToast('No se pudo recuperar el mazo — la sesión no puede continuar','#f85149');
+                clearHostSession();
+                return;
+            }
+            rtdb.ref('sync/'+code+'/status').set('active');
+            showSyncHostSession(); // Now safe — syncDeck and syncStep are populated
+            showToast('Sesión recuperada en carta '+(syncStep+1)+' ✓','#3fb950');
+        } else {
+            clearHostSession();
+            showToast('La sesión ya terminó','#f85149');
+        }
+    }).catch(function(e){
+        showToast('Error al recuperar sala: '+e.message,'#f85149');
+    });
 }
 
 function clearHostSession(){
