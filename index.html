@@ -3116,15 +3116,17 @@ function buildSyncResponseGrid(){
                 b.onclick=(function(pName,sId){
                     return function(){
                         const tapped=this;
+                        // Save answer IMMEDIATELY — never delay this
+                        syncLogs[pName][syncStep]=sId;
+                        // Show .selected outline, transfer focus to trap, then remove outline at 150ms
                         tapped.classList.add('selected');
                         const trap=document.getElementById('focusTrap');
                         if(trap) trap.focus();
                         setTimeout(function(){
                             tapped.classList.remove('selected');
-                            syncLogs[pName][syncStep]=sId;
-                            buildSyncResponseGrid();
                         },150);
                         haptic(HAPTIC.tap);
+                        buildSyncResponseGrid();
                     };
                 })(p.name,s.id);
                 btnRow.appendChild(b);
@@ -3143,7 +3145,10 @@ function buildSyncResponseGrid(){
 }
 
 function syncNextCard(){
-    const allAnswered=syncParticipants.every(p=>syncLogs[p.name][syncStep]!==undefined);
+    const allAnswered=syncParticipants.every(function(p){
+        if(p.isEmisor&&!isBlind) return true; // Emisor doesn't answer in non-blind mode
+        return syncLogs[p.name][syncStep]!==undefined;
+    });
     if(!allAnswered){showToast('Todos los participantes deben responder antes de continuar','#f85149');return;}
     syncStep++;
     if(syncStep>=syncDeck.length){
