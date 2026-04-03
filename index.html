@@ -3456,8 +3456,8 @@ async function recoverHostSession(code){
         document.getElementById('syncCodeBig').textContent=code;
         const ef=document.getElementById('syncHostEmisorName');
         if(ef) ef.value=syncEmisorName;
-        rtdb.ref('sync/'+code+'/status').set('waiting');
-        rtdb.ref('sync/'+code+'/hostOnline').set(true);
+        await rtdb.ref('sync/'+code+'/status').set('waiting');
+        await rtdb.ref('sync/'+code+'/hostOnline').set(true);
         rtdb.ref('sync/'+code+'/hostOnline').onDisconnect().set(false);
         rtdb.ref('sync/'+code+'/status').onDisconnect().set('host_away');
         const ref=rtdb.ref('sync/'+code+'/members');
@@ -3682,38 +3682,40 @@ function _attachSyncGuestListeners(uid, guestName){
 }
 
 async function startSyncOnlineSession(){
-    if(!rtdb||!syncRoomId) return;
-    // Assign to GLOBAL variables so reports use the correct values
-    totalCards=parseInt(document.getElementById('syncHostTotalCards').value);
-    colorLevel=parseInt(document.getElementById('syncHostColorLevel').value);
-    const blindEl=document.getElementById('syncHostBlind');
-    isBlind=blindEl?blindEl.checked:false;
-    // Read emisor name
-    const emisorField=document.getElementById('syncHostEmisorName');
-    const userObj=currentUser||(auth&&auth.currentUser);
-    syncEmisorName=(emisorField&&emisorField.value.trim())||(userObj&&userObj.displayName)||'Emisor';
-    syncDeck=[];
-    for(let i=0;i<totalCards/5;i++){
-        SYMBOLS.forEach(function(s){
-            let c='#000000';
-            if(colorLevel===2) c=s.c;
-            if(colorLevel===3) c=COLORS[Math.floor(Math.random()*COLORS.length)];
-            syncDeck.push({id:s.id,renderColor:c});
+    try{
+        if(!rtdb||!syncRoomId) return;
+        // Assign to GLOBAL variables so reports use the correct values
+        totalCards=parseInt(document.getElementById('syncHostTotalCards').value);
+        colorLevel=parseInt(document.getElementById('syncHostColorLevel').value);
+        const blindEl=document.getElementById('syncHostBlind');
+        isBlind=blindEl?blindEl.checked:false;
+        // Read emisor name
+        const emisorField=document.getElementById('syncHostEmisorName');
+        const userObj=currentUser||(auth&&auth.currentUser);
+        syncEmisorName=(emisorField&&emisorField.value.trim())||(userObj&&userObj.displayName)||'Emisor';
+        syncDeck=[];
+        for(let i=0;i<totalCards/5;i++){
+            SYMBOLS.forEach(function(s){
+                let c='#000000';
+                if(colorLevel===2) c=s.c;
+                if(colorLevel===3) c=COLORS[Math.floor(Math.random()*COLORS.length)];
+                syncDeck.push({id:s.id,renderColor:c});
+            });
+        }
+        fisherYates(syncDeck);
+        syncStep=0;
+        // Signal countdown to all, then start
+        await rtdb.ref('sync/'+syncRoomId).update({
+            status:'countdown',
+            totalCards,colorLevel,currentCard:0,deck:syncDeck,blind:isBlind,
+            hostName:syncEmisorName,
+            emisorName:syncEmisorName
         });
-    }
-    fisherYates(syncDeck);
-    syncStep=0;
-    // Signal countdown to all, then start
-    await rtdb.ref('sync/'+syncRoomId).update({
-        status:'countdown',
-        totalCards,colorLevel,currentCard:0,deck:syncDeck,blind:isBlind,
-        hostName:syncEmisorName,
-        emisorName:syncEmisorName
-    });
-    startCountdown(function(){
-        rtdb.ref('sync/'+syncRoomId).update({status:'active'});
-        showSyncHostSession();
-    });
+        startCountdown(function(){
+            rtdb.ref('sync/'+syncRoomId).update({status:'active'});
+            showSyncHostSession();
+        });
+    }catch(e){showToast('Error al iniciar sesión online: '+e.message,'#f85149');console.error('Error al iniciar sesión online:',e);}
 }
 
 function showSyncHostSession(){
@@ -3799,40 +3801,42 @@ function drawSyncHostCard(){
 }
 
 async function syncOnlineNextCard(){
-    if(!rtdb) return;
-    // Check if all participants answered before advancing
-    const snap=await rtdb.ref('sync/'+syncRoomId+'/members').once('value');
-    const members=snap.val()||{};
-    const memberList=Object.values(members).filter(function(m){return m&&m.name;});
-    const pending=memberList.filter(function(m){return !(m.answers&&m.answers[syncStep]&&m.answers[syncStep]!=='skip');});
+    try{
+        if(!rtdb) return;
+        // Check if all participants answered before advancing
+        const snap=await rtdb.ref('sync/'+syncRoomId+'/members').once('value');
+        const members=snap.val()||{};
+        const memberList=Object.values(members).filter(function(m){return m&&m.name;});
+        const pending=memberList.filter(function(m){return !(m.answers&&m.answers[syncStep]&&m.answers[syncStep]!=='skip');});
 
-    if(pending.length>0){
+        if(pending.length>0){
+            const warn=document.getElementById('syncPendingWarning');
+            const forceBtn=document.getElementById('syncHostForceBtn');
+            if(warn) warn.style.display='block';
+            if(forceBtn) forceBtn.style.display='block';
+            showToast(pending.length+' participante(s) aún no han respondido','#f85149');
+            return;
+        }
+
+        if(syncStep>=syncDeck.length-1){endSyncOnlineSession();return;}
+        syncStep++;
+        await rtdb.ref('sync/'+syncRoomId).update({currentCard:syncStep});
+
+        // Clear live responses immediately so all show "esperando..."
+        const el=document.getElementById('syncLiveResponses');
+        if(el) el.innerHTML=memberList.map(function(m){
+            return '<div style="padding:4px 0;display:flex;justify-content:space-between;align-items:center;">'
+                +'<span style="color:var(--white);font-weight:bold;">'+m.name+'</span>'
+                +'<span style="color:var(--gray);">esperando...</span>'
+                +'</div>';
+        }).join('');
+
+        drawSyncHostCard();
         const warn=document.getElementById('syncPendingWarning');
         const forceBtn=document.getElementById('syncHostForceBtn');
-        if(warn) warn.style.display='block';
-        if(forceBtn) forceBtn.style.display='block';
-        showToast(pending.length+' participante(s) aún no han respondido','#f85149');
-        return;
-    }
-
-    if(syncStep>=syncDeck.length-1){endSyncOnlineSession();return;}
-    syncStep++;
-    await rtdb.ref('sync/'+syncRoomId).update({currentCard:syncStep});
-
-    // Clear live responses immediately so all show "esperando..."
-    const el=document.getElementById('syncLiveResponses');
-    if(el) el.innerHTML=memberList.map(function(m){
-        return '<div style="padding:4px 0;display:flex;justify-content:space-between;align-items:center;">'
-            +'<span style="color:var(--white);font-weight:bold;">'+m.name+'</span>'
-            +'<span style="color:var(--gray);">esperando...</span>'
-            +'</div>';
-    }).join('');
-
-    drawSyncHostCard();
-    const warn=document.getElementById('syncPendingWarning');
-    const forceBtn=document.getElementById('syncHostForceBtn');
-    if(warn) warn.style.display='none';
-    if(forceBtn) forceBtn.style.display='none';
+        if(warn) warn.style.display='none';
+        if(forceBtn) forceBtn.style.display='none';
+    }catch(e){showToast('Error al avanzar carta: '+e.message,'#f85149');console.error('Error al avanzar carta:',e);}
 }
 
 async function forceNextSyncCard(){
@@ -4721,36 +4725,42 @@ async function saveSessionToCloud(sessionData, isAuto){
 }
 
 async function migrateLocalToCloud(){
-    if(!currentUser) return;
-    // Check if cloud already has data
-    const cloudH=await getCloudHistory(false);
-    if(cloudH&&cloudH.length>0) return; // Already has cloud data, skip migration
-    const localH=getHistory();
-    const localA=getAutoHistory();
-    if(localH.length===0&&localA.length===0) return;
-    showToast('Migrando historial local a la nube...','#58a6ff');
-    const batch1=localH.map(s=>saveSessionToCloud(s,false));
-    const batch2=localA.map(s=>saveSessionToCloud(s,true));
-    await Promise.all([...batch1,...batch2]);
-    showToast('Historial sincronizado ✓');
+    try{
+        if(!currentUser) return;
+        // Check if cloud already has data
+        const cloudH=await getCloudHistory(false);
+        if(cloudH&&cloudH.length>0) return; // Already has cloud data, skip migration
+        const localH=getHistory();
+        const localA=getAutoHistory();
+        if(localH.length===0&&localA.length===0) return;
+        showToast('Migrando historial local a la nube...','#58a6ff');
+        const batch1=localH.map(s=>saveSessionToCloud(s,false));
+        const batch2=localA.map(s=>saveSessionToCloud(s,true));
+        await Promise.all([...batch1,...batch2]);
+        showToast('Historial sincronizado ✓');
+    }catch(e){showToast('Error al migrar historial: '+e.message,'#f85149');console.error('Error al migrar historial:',e);}
 }
 
 // ── SMART HISTORY — uses cloud if logged in, local otherwise ───────────────
 async function getSmartHistory(isAuto){
-    if(currentUser){
-        const cloud=await getCloudHistory(isAuto);
-        if(cloud!==null) return cloud;
-    }
-    return isAuto?getAutoHistory():getHistory();
+    try{
+        if(currentUser){
+            const cloud=await getCloudHistory(isAuto);
+            if(cloud!==null) return cloud;
+        }
+        return isAuto?getAutoHistory():getHistory();
+    }catch(e){showToast('Error al obtener historial: '+e.message,'#f85149');console.error('Error al obtener historial:',e);}
 }
 
 async function saveSmartSession(sessionData, isAuto){
-    // Always save locally
-    const h=isAuto?getAutoHistory():getHistory();
-    h.push(sessionData);
-    if(isAuto) saveAutoHistory(h); else saveHistory(h);
-    // Also save to cloud if logged in
-    await saveSessionToCloud(sessionData, isAuto);
+    try{
+        // Always save locally
+        const h=isAuto?getAutoHistory():getHistory();
+        h.push(sessionData);
+        if(isAuto) saveAutoHistory(h); else saveHistory(h);
+        // Also save to cloud if logged in
+        await saveSessionToCloud(sessionData, isAuto);
+    }catch(e){showToast('Error al guardar sesión: '+e.message,'#f85149');console.error('Error al guardar sesión:',e);}
 }
 
 // ── PARTY STATE ────────────────────────────────────────────────────────────
@@ -4815,125 +4825,131 @@ function cancelParty(){
 }
 
 async function createPartyRoom(){
-    if(!currentUser){ showToast('Inicia sesión para crear una sala','#f85149'); return; }
-    if(!rtdb){ showToast('Firebase no disponible','#f85149'); return; }
-    const code=genRoomCode();
-    partyRoomId=code;
-    partyRole='host';
-    const totalCards=parseInt(document.getElementById('partyTotalCards')?document.getElementById('partyTotalCards').value||'25':'25');
-    const colorLevel=parseInt(document.getElementById('partyColorLevel')?document.getElementById('partyColorLevel').value||'1':'1');
+    try{
+        if(!currentUser){ showToast('Inicia sesión para crear una sala','#f85149'); return; }
+        if(!rtdb){ showToast('Firebase no disponible','#f85149'); return; }
+        const code=genRoomCode();
+        partyRoomId=code;
+        partyRole='host';
+        const totalCards=parseInt(document.getElementById('partyTotalCards')?document.getElementById('partyTotalCards').value||'25':'25');
+        const colorLevel=parseInt(document.getElementById('partyColorLevel')?document.getElementById('partyColorLevel').value||'1':'1');
 
-    await rtdb.ref('party/'+code).set({
-        host:currentUser.uid,
-        hostName:currentUser.displayName||'Emisor',
-        status:'waiting',
-        totalCards,
-        colorLevel,
-        currentCard:0,
-        deck:[],
-        members:{}
-    });
+        await rtdb.ref('party/'+code).set({
+            host:currentUser.uid,
+            hostName:currentUser.displayName||'Emisor',
+            status:'waiting',
+            totalCards,
+            colorLevel,
+            currentCard:0,
+            deck:[],
+            members:{}
+        });
 
-    // Set expiry — auto-delete after 2 hours
-    setTimeout(()=>{ if(partyRoomId===code) rtdb.ref('party/'+code).remove(); }, 7200000);
+        // Set expiry — auto-delete after 2 hours
+        setTimeout(()=>{ if(partyRoomId===code) rtdb.ref('party/'+code).remove(); }, 7200000);
 
-    hideAll();
-    document.getElementById('scr-party-host').classList.remove('hidden');
-    document.getElementById('partyRoomCodeDisplay').textContent='Código: '+code;
-    document.getElementById('partyCodeBig').textContent=code;
+        hideAll();
+        document.getElementById('scr-party-host').classList.remove('hidden');
+        document.getElementById('partyRoomCodeDisplay').textContent='Código: '+code;
+        document.getElementById('partyCodeBig').textContent=code;
 
-    // Listen for members joining
-    const membersRef=rtdb.ref('party/'+code+'/members');
-    const offMembers=membersRef.on('value',snap=>{
-        const members=snap.val()||{};
-        const list=Object.values(members);
-        const el=document.getElementById('partyMembersList');
-        if(el) el.innerHTML=list.length===0
-            ?'<span style="color:var(--gray);">Esperando conexiones...</span>'
-            :list.map(m=>`<div style="padding:4px 0;color:var(--white);">● ${m.name}</div>`).join('');
-    });
-    partyListeners.push(()=>membersRef.off('value',offMembers));
+        // Listen for members joining
+        const membersRef=rtdb.ref('party/'+code+'/members');
+        const offMembers=membersRef.on('value',snap=>{
+            const members=snap.val()||{};
+            const list=Object.values(members);
+            const el=document.getElementById('partyMembersList');
+            if(el) el.innerHTML=list.length===0
+                ?'<span style="color:var(--gray);">Esperando conexiones...</span>'
+                :list.map(m=>`<div style="padding:4px 0;color:var(--white);">● ${m.name}</div>`).join('');
+        });
+        partyListeners.push(()=>membersRef.off('value',offMembers));
+    }catch(e){showToast('Error al crear sala Party: '+e.message,'#f85149');console.error('Error al crear sala Party:',e);}
 }
 
 async function joinPartyRoom(){
-    if(!currentUser){ showToast('Inicia sesión para unirte a una sala','#f85149'); return; }
-    if(!rtdb){ showToast('Firebase no disponible','#f85149'); return; }
-    const code=(document.getElementById('partyCodeInput').value||'').trim().toUpperCase();
-    if(code.length!==4){ showToast('El código debe ser de 4 letras','#f85149'); return; }
+    try{
+        if(!currentUser){ showToast('Inicia sesión para unirte a una sala','#f85149'); return; }
+        if(!rtdb){ showToast('Firebase no disponible','#f85149'); return; }
+        const code=(document.getElementById('partyCodeInput').value||'').trim().toUpperCase();
+        if(code.length!==4){ showToast('El código debe ser de 4 letras','#f85149'); return; }
 
-    const snap=await rtdb.ref('party/'+code).once('value');
-    if(!snap.exists()){ showToast('Sala no encontrada — verifica el código','#f85149'); return; }
+        const snap=await rtdb.ref('party/'+code).once('value');
+        if(!snap.exists()){ showToast('Sala no encontrada — verifica el código','#f85149'); return; }
 
-    partyRoomId=code;
-    partyRole='guest';
+        partyRoomId=code;
+        partyRole='guest';
 
-    // Register as member
-    await rtdb.ref('party/'+code+'/members/'+currentUser.uid).set({
-        name:currentUser.displayName||'Receptor',
-        uid:currentUser.uid,
-        answers:{}
-    });
+        // Register as member
+        await rtdb.ref('party/'+code+'/members/'+currentUser.uid).set({
+            name:currentUser.displayName||'Receptor',
+            uid:currentUser.uid,
+            answers:{}
+        });
 
-    hideAll();
-    document.getElementById('scr-party-guest').classList.remove('hidden');
-    document.getElementById('partyGuestRoomCode').textContent='Sala: '+code;
-    document.getElementById('partyGuestName').textContent=currentUser.displayName||'';
+        hideAll();
+        document.getElementById('scr-party-guest').classList.remove('hidden');
+        document.getElementById('partyGuestRoomCode').textContent='Sala: '+code;
+        document.getElementById('partyGuestName').textContent=currentUser.displayName||'';
 
-    // Listen for session start
-    const statusRef=rtdb.ref('party/'+code+'/status');
-    const offStatus=statusRef.on('value',snap=>{
-        if(snap.val()==='active'){
-            rtdb.ref('party/'+code).once('value').then(roomSnap=>{
-                const room=roomSnap.val();
-                partyDeck=room.deck||[];
-                partyLogs=[];
-                partyStep=room.currentCard||0;
-                startPartyGuestSession(room);
-            });
-        }
-        if(snap.val()==='ended') endPartyGuestSession();
-    });
-    partyListeners.push(()=>statusRef.off('value',offStatus));
+        // Listen for session start
+        const statusRef=rtdb.ref('party/'+code+'/status');
+        const offStatus=statusRef.on('value',snap=>{
+            if(snap.val()==='active'){
+                rtdb.ref('party/'+code).once('value').then(roomSnap=>{
+                    const room=roomSnap.val();
+                    partyDeck=room.deck||[];
+                    partyLogs=[];
+                    partyStep=room.currentCard||0;
+                    startPartyGuestSession(room);
+                });
+            }
+            if(snap.val()==='ended') endPartyGuestSession();
+        });
+        partyListeners.push(()=>statusRef.off('value',offStatus));
 
-    // Listen for members list
-    const membersRef=rtdb.ref('party/'+code+'/members');
-    const offM=membersRef.on('value',snap=>{
-        const members=snap.val()||{};
-        const list=Object.values(members);
-        const el=document.getElementById('partyGuestMembersList');
-        if(el) el.innerHTML=list.map(m=>`<div style="padding:4px 0;color:var(--white);">● ${m.name}</div>`).join('');
-    });
-    partyListeners.push(()=>membersRef.off('value',offM));
+        // Listen for members list
+        const membersRef=rtdb.ref('party/'+code+'/members');
+        const offM=membersRef.on('value',snap=>{
+            const members=snap.val()||{};
+            const list=Object.values(members);
+            const el=document.getElementById('partyGuestMembersList');
+            if(el) el.innerHTML=list.map(m=>`<div style="padding:4px 0;color:var(--white);">● ${m.name}</div>`).join('');
+        });
+        partyListeners.push(()=>membersRef.off('value',offM));
+    }catch(e){showToast('Error al unirse a sala: '+e.message,'#f85149');console.error('Error al unirse a sala:',e);}
 }
 
 async function startPartySession(){
-    if(!partyRoomId) return;
-    const totalCards=parseInt(document.getElementById('partyTotalCards').value);
-    const colorLevel=parseInt(document.getElementById('partyColorLevel').value);
+    try{
+        if(!partyRoomId) return;
+        const totalCards=parseInt(document.getElementById('partyTotalCards').value);
+        const colorLevel=parseInt(document.getElementById('partyColorLevel').value);
 
-    // Build deck
-    partyDeck=[];
-    for(let i=0;i<totalCards/5;i++){
-        SYMBOLS.forEach(s=>{
-            let c='#000000';
-            if(colorLevel===2) c=s.c;
-            if(colorLevel===3) c=COLORS[Math.floor(Math.random()*COLORS.length)];
-            partyDeck.push({id:s.id,renderColor:c});
+        // Build deck
+        partyDeck=[];
+        for(let i=0;i<totalCards/5;i++){
+            SYMBOLS.forEach(s=>{
+                let c='#000000';
+                if(colorLevel===2) c=s.c;
+                if(colorLevel===3) c=COLORS[Math.floor(Math.random()*COLORS.length)];
+                partyDeck.push({id:s.id,renderColor:c});
+            });
+        }
+        fisherYates(partyDeck);
+        partyStep=0;
+
+        // Push deck and start session
+        await rtdb.ref('party/'+partyRoomId).update({
+            status:'active',
+            totalCards,
+            colorLevel,
+            currentCard:0,
+            deck:partyDeck
         });
-    }
-    fisherYates(partyDeck);
-    partyStep=0;
 
-    // Push deck and start session
-    await rtdb.ref('party/'+partyRoomId).update({
-        status:'active',
-        totalCards,
-        colorLevel,
-        currentCard:0,
-        deck:partyDeck
-    });
-
-    showPartyHostSession();
+        showPartyHostSession();
+    }catch(e){showToast('Error al iniciar sesión Party: '+e.message,'#f85149');console.error('Error al iniciar sesión Party:',e);}
 }
 
 function showPartyHostSession(){
@@ -4969,19 +4985,23 @@ function drawPartyHostCard(){
 }
 
 async function partyNextCard(){
-    if(partyStep>=partyDeck.length-1){ partyEndSession(); return; }
-    partyStep++;
-    await rtdb.ref('party/'+partyRoomId).update({currentCard:partyStep});
-    drawPartyHostCard();
+    try{
+        if(partyStep>=partyDeck.length-1){ partyEndSession(); return; }
+        partyStep++;
+        await rtdb.ref('party/'+partyRoomId).update({currentCard:partyStep});
+        drawPartyHostCard();
+    }catch(e){showToast('Error al avanzar carta Party: '+e.message,'#f85149');console.error('Error al avanzar carta Party:',e);}
 }
 
 async function partyEndSession(){
-    await rtdb.ref('party/'+partyRoomId).update({status:'ended'});
-    partyListeners.forEach(fn=>fn());
-    partyListeners=[];
-    showToast('Sesión Party terminada');
-    hideAll();
-    document.getElementById('scr-setup').classList.remove('hidden');
+    try{
+        await rtdb.ref('party/'+partyRoomId).update({status:'ended'});
+        partyListeners.forEach(fn=>fn());
+        partyListeners=[];
+        showToast('Sesión Party terminada');
+        hideAll();
+        document.getElementById('scr-setup').classList.remove('hidden');
+    }catch(e){showToast('Error al terminar sesión Party: '+e.message,'#f85149');console.error('Error al terminar sesión Party:',e);}
 }
 
 function startPartyGuestSession(room){
@@ -5023,10 +5043,12 @@ function updatePartyGuestStep(cardIdx){
 }
 
 async function recordPartyAnswer(symbolId){
-    partyLogs[partyStep]=symbolId;
-    await rtdb.ref('party/'+partyRoomId+'/members/'+currentUser.uid+'/answers/'+partyStep).set(symbolId);
-    updatePartyStats();
-    showToast('Respuesta registrada ✓');
+    try{
+        partyLogs[partyStep]=symbolId;
+        await rtdb.ref('party/'+partyRoomId+'/members/'+currentUser.uid+'/answers/'+partyStep).set(symbolId);
+        updatePartyStats();
+        showToast('Respuesta registrada ✓');
+    }catch(e){showToast('Error al registrar respuesta: '+e.message,'#f85149');console.error('Error al registrar respuesta:',e);}
 }
 
 function updatePartyStats(){
