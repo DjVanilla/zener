@@ -617,7 +617,8 @@
     <div class="config-card" style="margin-bottom:14px;">
         <div style="font-size:0.65rem;font-weight:bold;color:#3fb950;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;">🌐 En Línea — Multidispositivo</div>
         <p style="font-size:0.78rem;color:var(--gray);line-height:1.6;margin:0 0 12px;">Cada participante responde desde su propio dispositivo. El Emisor comparte el enlace de sala.</p>
-        <button onclick="createSyncRoom()" class="btn-primary" style="margin-bottom:10px;">Crear Sala</button>
+        <button onclick="createSyncRoom()" class="btn-primary" style="margin-bottom:8px;">Crear Sala</button>
+        <p style="text-align:center;font-size:0.72rem;color:var(--gray);margin:0 0 10px;letter-spacing:0.3px;">o únete ingresando el código de sala (4 letras)</p>
         <div style="display:flex;gap:10px;">
             <input type="text" id="syncCodeInput" maxlength="4" placeholder="ABCD" style="text-transform:uppercase;text-align:center;font-size:1.2rem;font-weight:bold;letter-spacing:6px;flex:1;padding:12px;background:#010409;border:1px solid var(--border);color:var(--white);border-radius:10px;"/>
             <button onclick="joinSyncRoom()" style="background:#3fb950;border:none;color:#000;padding:12px 18px;border-radius:10px;font-weight:bold;cursor:pointer;-webkit-appearance:none;appearance:none;">Unirse</button>
@@ -667,8 +668,9 @@
             </select>
         </div>
         <div class="input-group" style="margin-bottom:0;">
-            <label style="display:flex;align-items:center;gap:12px;cursor:pointer;font-size:0.9rem;">
-                <input type="checkbox" id="syncBlindGlobal" style="transform:scale(1.3);"> MODO CIEGO (Oculta la carta — Emisor tampoco la ve)
+            <label style="display:flex;align-items:flex-start;gap:12px;cursor:pointer;font-size:0.9rem;">
+                <input type="checkbox" id="syncBlindGlobal" style="transform:scale(1.3);margin-top:2px;flex-shrink:0;">
+                <span>MODO CIEGO<br><span style="font-size:0.72rem;font-weight:normal;color:var(--gray);">(Oculta la carta — Emisor tampoco la ve)</span></span>
             </label>
         </div>
     </div>
@@ -690,6 +692,7 @@
     <!-- Normal navigation buttons -->
     <div id="syncNavButtons">
         <button class="btn-outline" style="margin-top:16px;" onclick="syncNextCard()">Siguiente Carta →</button>
+        <button id="syncLocalForceBtn" onclick="syncLocalForceCard()" style="display:none;margin-top:8px;background:transparent;border:1px solid var(--danger);color:var(--danger);padding:11px;border-radius:10px;width:100%;cursor:pointer;font-size:0.8rem;font-weight:bold;text-transform:uppercase;-webkit-appearance:none;appearance:none;">⚡ Forzar avance (sin respuesta)</button>
         <!-- Swipe to finalize -->
         <div style="margin-top:24px;border:1px solid rgba(248,81,73,0.3);border-radius:12px;padding:12px 14px;background:rgba(248,81,73,0.04);">
             <div style="font-size:0.6rem;font-weight:bold;color:var(--danger);text-transform:uppercase;letter-spacing:1px;margin-bottom:7px;text-align:center;">Finalizar ahora — desliza para confirmar</div>
@@ -785,7 +788,8 @@
         </div>
         <div class="input-group" style="margin-bottom:0;">
             <label style="display:flex;align-items:center;gap:12px;cursor:pointer;font-size:0.9rem;">
-                <input type="checkbox" id="syncHostBlind" style="transform:scale(1.3);"> MODO CIEGO (Oculta la carta — Emisor tampoco la ve)
+                <input type="checkbox" id="syncHostBlind" style="transform:scale(1.3);margin-top:2px;flex-shrink:0;">
+                <span>MODO CIEGO<br><span style="font-size:0.72rem;font-weight:normal;color:var(--gray);">(Oculta la carta — Emisor tampoco la ve)</span></span>
             </label>
         </div>
     </div>
@@ -852,6 +856,17 @@
             <div style="font-size:0.75rem;color:var(--gray);margin-top:4px;">Esperando siguiente carta...</div>
         </div>
     </div>
+    <!-- Guest early finish swipe -->
+    <div id="guestEarlyEndZone" style="margin-top:14px;border:1px solid rgba(248,81,73,0.3);border-radius:12px;padding:12px 14px;background:rgba(248,81,73,0.04);">
+        <div style="font-size:0.6rem;font-weight:bold;color:var(--danger);text-transform:uppercase;letter-spacing:1px;margin-bottom:7px;text-align:center;">Finalizar mi participación — desliza para confirmar</div>
+        <div class="swipe-track" id="guestEndTrack" style="position:relative;height:40px;background:rgba(248,81,73,0.12);border-radius:10px;overflow:hidden;-webkit-user-select:none;user-select:none;touch-action:none;-webkit-touch-callout:none;">
+            <div style="position:absolute;top:0;left:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;font-size:0.68rem;font-weight:bold;color:rgba(248,81,73,0.45);text-transform:uppercase;letter-spacing:1px;pointer-events:none;">Desliza → para terminar</div>
+            <div id="guestEndThumb" style="position:absolute;left:4px;top:3px;width:56px;height:34px;background:var(--danger);border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:grab;touch-action:none;">
+                <span style="color:#fff;font-size:0.9rem;">→</span>
+            </div>
+        </div>
+    </div>
+
     <!-- Host away notice during session -->
     <div id="syncSessionHostAway" style="display:none;margin-top:12px;background:rgba(248,81,73,0.08);border:1px solid rgba(248,81,73,0.3);border-radius:10px;padding:12px 16px;text-align:center;">
         <div style="font-size:0.82rem;color:#f85149;font-weight:bold;">⚠ El Emisor se desconectó</div>
@@ -2997,6 +3012,9 @@ function addSyncParticipant(){
     div.style.cssText='display:flex;gap:8px;align-items:center;';
     div.innerHTML=`<input type="text" class="sync-participant-input" placeholder="Participante ${count}" style="flex:1;"/><button onclick="this.parentElement.remove()" style="background:transparent;border:1px solid var(--danger);color:var(--danger);width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:1rem;-webkit-appearance:none;appearance:none;">×</button>`;
     container.appendChild(div);
+    // Auto-focus the new input immediately
+    const newInput=div.querySelector('.sync-participant-input');
+    if(newInput) setTimeout(function(){newInput.focus();},50);
 }
 
 function startSyncLocal(){
@@ -3134,13 +3152,54 @@ function buildSyncResponseGrid(){
     if(nextBtn) nextBtn.style.opacity=allAnswered?'1':'0.4';
 }
 
+function syncLocalForceCard(){
+    showConfirm(
+        '¿Forzar avance?',
+        'Los participantes sin respuesta tendrán esta carta marcada como omisión en su reporte.',
+        function(){
+            // Mark unanswered participants as undefined (treated as skip by trimToPlayed)
+            syncParticipants.forEach(function(p){
+                if(p.isEmisor&&!isBlind) return;
+                if(syncLogs[p.name][syncStep]===undefined) syncLogs[p.name][syncStep]=null;
+            });
+            const fb=document.getElementById('syncLocalForceBtn');
+            if(fb) fb.style.display='none';
+            syncStep++;
+            if(syncStep>=syncDeck.length){
+                playAchievementSound(); haptic(HAPTIC.end);
+                const navBtns=document.getElementById('syncNavButtons');
+                const notice=document.getElementById('syncCompletionNotice');
+                const cardSlot=document.getElementById('syncCardSlot');
+                const grid=document.getElementById('syncResponseGrid');
+                if(navBtns) navBtns.style.display='none';
+                if(cardSlot) cardSlot.style.display='none';
+                if(grid) grid.innerHTML='';
+                if(notice) notice.style.display='block';
+                document.getElementById('syncStep').textContent='SESIÓN COMPLETA';
+            } else {
+                drawSyncStep();
+            }
+            window.scrollTo(0,0);
+        }
+    );
+}
+
 function syncNextCard(){
     const allAnswered=syncParticipants.every(function(p){
         if(p.isEmisor&&!isBlind) return true; // Emisor doesn't answer in non-blind mode
         return syncLogs[p.name][syncStep]!==undefined;
     });
-    if(!allAnswered){showToast('Todos los participantes deben responder antes de continuar','#f85149');return;}
+    if(!allAnswered){
+        showToast('Hay participantes sin responder — espera o fuerza el avance','#f85149');
+        const fb=document.getElementById('syncLocalForceBtn');
+        if(fb) fb.style.display='block';
+        return;
+    }
+    const fb2=document.getElementById('syncLocalForceBtn');
+    if(fb2) fb2.style.display='none';
     syncStep++;
+    const _fb=document.getElementById('syncLocalForceBtn');
+    if(_fb) _fb.style.display='none';
     if(syncStep>=syncDeck.length){
         // Play achievement sound
         playAchievementSound(); haptic(HAPTIC.end);
@@ -3572,8 +3631,8 @@ function confirmJoinSync(){
     if(!rtdb){showToast('Firebase no disponible','#f85149');return;}
     const nameInput=document.getElementById('syncGuestName').value.trim();
     const user=currentUser||(auth&&auth.currentUser);
-    const guestName=nameInput||(user&&(user.displayName||user.email))||'Participante';
-    if(!guestName){showToast('Ingresa tu nombre','#f85149');return;}
+    const guestName=nameInput||(user&&(user.displayName||user.email));
+    if(!guestName){showToast('Ingresa tu nombre para unirte a la sala','#f85149');return;}
 
     // Check room status BEFORE registering
     rtdb.ref('sync/'+syncRoomId).once('value').then(function(snap){
@@ -3589,10 +3648,14 @@ function confirmJoinSync(){
             return;
         }
 
-        // Store uid persistently
-        const uid=user?user.uid:('guest_'+Date.now()+'_'+Math.random().toString(36).slice(2,6));
+        // Recover UID from sessionStorage if same room (survives F5)
+        let storedGuest=null;
+        try{const sg=sessionStorage.getItem('zener_guest_session');if(sg){storedGuest=JSON.parse(sg);if(storedGuest.code!==syncRoomId)storedGuest=null;}}catch(e){}
+        const uid=storedGuest?storedGuest.uid:(user?user.uid:('guest_'+Date.now()+'_'+Math.random().toString(36).slice(2,6)));
         syncGuestUid=uid;
         syncGuestDisplayName=guestName;
+        // Persist for refresh recovery
+        try{sessionStorage.setItem('zener_guest_session',JSON.stringify({code:syncRoomId,uid:uid,name:guestName}));}catch(e){}
 
         // Check if already registered with this uid to avoid duplicate
         const existingMember=roomData.members&&roomData.members[uid];
@@ -3893,9 +3956,27 @@ async function endSyncOnlineSession(){
 function startSyncGuestSession(room, guestName){
     syncDeck=Array.isArray(room.deck)?room.deck:(room.deck&&typeof room.deck==='object'?Object.values(room.deck):[]);
     const user=currentUser||(auth&&auth.currentUser);
-    // Use the stored uid — fixes the undefined name bug
     const uid=syncGuestUid||(user?user.uid:null);
     syncGuestDisplayName=guestName;
+    // Set syncStep to current card in room (handles mid-session rejoin)
+    const currentCard=typeof room.currentCard==='number'?room.currentCard:0;
+    syncStep=currentCard;
+    // Mark any unanswered cards before current as 'skip' in Firebase (rejoin gaps)
+    if(uid&&rtdb&&currentCard>0){
+        const myAnswers=(room.members&&room.members[uid]&&room.members[uid].answers)||{};
+        const skipUpdates={};
+        for(let i=0;i<currentCard;i++){
+            if(myAnswers[i]===undefined||myAnswers[i]===null){
+                skipUpdates['members/'+uid+'/answers/'+i]='skip';
+            }
+        }
+        if(Object.keys(skipUpdates).length>0){
+            rtdb.ref('sync/'+syncRoomId).update(skipUpdates).catch(function(){});
+        }
+    }
+    // Update step counter
+    const stepEl=document.getElementById('syncOnlineStep');
+    if(stepEl) stepEl.textContent='CARTA '+String(currentCard+1).padStart(2,'0')+' / '+syncDeck.length;
     hideAll();
     document.getElementById('scr-sync-online-session').classList.remove('hidden');
     document.getElementById('syncOnlineRoomTag').textContent='INTG Sync · '+syncRoomId;
@@ -3968,6 +4049,28 @@ function startSyncGuestSession(room, guestName){
     });
     syncListeners.push(function(){statusRef.off('value',offStatus);});
 
+    // Guest swipe to finish early — report covers only answered cards (trimToPlayed handles it)
+    initSwipe('guestEndTrack','guestEndThumb',function(){
+        haptic(HAPTIC.swipe);
+        showConfirm(
+            '¿Finalizar tu participación?',
+            'Tu reporte cubrirá únicamente las cartas que respondiste. Las demás quedarán como omisión.',
+            function(){
+                haptic(HAPTIC.end);
+                // Mark remaining unanswered cards as skip
+                if(uid&&rtdb){
+                    const updates={};
+                    for(let i=syncStep;i<syncDeck.length;i++){
+                        updates['members/'+uid+'/answers/'+i]='skip';
+                    }
+                    rtdb.ref('sync/'+syncRoomId).update(updates).catch(function(){});
+                }
+                syncListeners.forEach(function(fn){fn();});
+                syncListeners=[];
+                goToSyncGuestFinalNotes();
+            }
+        );
+    });
     window.scrollTo(0,0);
 }
 
