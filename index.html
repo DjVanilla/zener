@@ -2583,6 +2583,72 @@ function trimToPlayed(logsArr, deckArr){
         count:count
     };
 }
+// ── buildReport HELPERS ── extracted to reduce CC from 76 ───────────────────
+// Pure helpers and curY-passing renderers. Identical logic, module scope.
+function _brTextHeight(ctx,text,maxW){
+    const ws=text.split(' ');let lc=1,l='';
+    ws.forEach(function(w){const tl=l+w+' ';if(ctx.measureText(tl).width>maxW){lc++;l=w+' ';}else l=tl;});
+    return lc*22;
+}
+function _brComputeStreaks(logsA,deckA,key){
+    const list=[];let run=0;
+    logsA.forEach(function(ans,i){
+        const hit=key==='pre'?(i+1<logsA.length&&ans===(deckA[i+1]&&deckA[i+1].id))
+                             :(i>0&&ans===(deckA[i-1]&&deckA[i-1].id));
+        if(hit)run++;
+        else{if(run>=2)list.push({end:i-1,len:run});run=0;}
+    });
+    if(run>=2)list.push({end:logsA.length-1,len:run});
+    return list;
+}
+function _brOutlineText(ctx,text,x,y,fillCol,font,align){
+    ctx.save();
+    ctx.font=font;ctx.textAlign=align;
+    ctx.strokeStyle='rgba(0,0,0,0.28)';ctx.lineWidth=1.2;ctx.lineJoin='round';ctx.miterLimit=2;
+    ctx.strokeText(text,x,y);
+    ctx.fillStyle=fillCol;ctx.fillText(text,x,y);
+    ctx.restore();
+}
+function _brStatBars(ctx,curY,totalCards,label,val,col,streakList,streakLabel,showAllHits,hitPositions){
+    ctx.save();
+    const perc=Math.round((val/totalCards)*100);
+    ctx.font='bold 13px Arial';ctx.textAlign='center';ctx.fillStyle='#222';
+    ctx.fillText(label,400,curY+15);
+    _brOutlineText(ctx,`${val} / ${totalCards}   (${perc}%)`,400,curY+34,col,'bold 16px Arial','center');
+    ctx.fillStyle='#e0e2e6';ctx.fillRect(70,curY+44,680,10);
+    ctx.fillStyle=col;ctx.fillRect(70,curY+44,(val/totalCards)*680,10);
+    curY+=60;
+    const drawLine=function(text){
+        ctx.font='bold 13px Arial';ctx.textAlign='left';ctx.fillStyle='#111';
+        ctx.fillText(text,86,curY+14);
+        curY+=22;
+    };
+    if(showAllHits&&hitPositions&&hitPositions.length){
+        const groups=[];
+        hitPositions.forEach(function(pos,i){
+            if(i===0||pos!==hitPositions[i-1]+1)groups.push([pos]);
+            else groups[groups.length-1].push(pos);
+        });
+        groups.forEach(function(g){
+            const text=g.length===1?`Carta ${g[0]+1}`:`Cartas ${g[0]+1} a ${g[g.length-1]+1}  (${g.length} seguidas)`;
+            drawLine(text);
+        });
+        curY+=4;
+    }
+    if(!showAllHits&&streakList&&streakList.length){
+        const totalConsec=streakList.reduce(function(acc,str){return acc+str.len;},0);
+        _brOutlineText(ctx,`${totalConsec} Coincidencias`,400,curY+14,col,'bold 16px Arial','center');
+        curY+=24;
+        streakList.forEach(function(str){
+            const sc=str.end-str.len+2,ec=str.end+1;
+            drawLine(`${streakLabel}: ${str.len} seguidas — cartas ${sc} a ${ec}`);
+        });
+        curY+=4;
+    }
+    curY+=10;
+    ctx.restore();
+    return curY;
+}
 function buildReport(ctx,cnv,P){
     const {emisor,receptor,obsNotes,finNotes,d,p,ps,totalCards,dateStr,timeStr,sessId,seqNum,logsArr,deckArr}=P;
     // Safe access with fallbacks
@@ -2610,11 +2676,10 @@ function buildReport(ctx,cnv,P){
     // Wrap all rendering in try/catch so errors are visible, not silent blank canvas
     try {
     ctx.font='13px Arial';
-    const tw=t=>{const ws=t.split(' ');let lc=1,l='';ws.forEach(w=>{const tl=l+w+' ';if(ctx.measureText(tl).width>620){lc++;l=w+' ';}else l=tl;});return lc*22;};
 
-    const diagH=tw(diag)+tw(cond)+tw(moveDiag)+160;
-    const obsH=obsNotes?(tw(obsNotes)+70):0;
-    const finH=finNotes?(tw(finNotes)+70):0;
+    const diagH=_brTextHeight(ctx,diag,620)+_brTextHeight(ctx,cond,620)+_brTextHeight(ctx,moveDiag,620)+160;
+    const obsH=obsNotes?(_brTextHeight(ctx,obsNotes,620)+70):0;
+    const finH=finNotes?(_brTextHeight(ctx,finNotes,620)+70):0;
     // ROW_H=56, no legend rows (+30 for col headers)
     const listH=(logsArr.length*56)+80;
     // Stat block: each bar=44px + pill lines
@@ -2694,94 +2759,19 @@ function buildReport(ctx,cnv,P){
     drawSectionHeader(ctx,'RESUMEN ESTADÍSTICO DE LA SESIÓN',curY,'#e8f0fe','#1a56db');
     curY+=42;
 
-    // Helper: crisp outline text — very thin stroke so numbers stay sharp
-    const drawOutlineText=(text,x,y,fillCol,font,align)=>{
-        ctx.save();
-        ctx.font=font;ctx.textAlign=align;
-        ctx.strokeStyle='rgba(0,0,0,0.28)';ctx.lineWidth=1.2;ctx.lineJoin='round';ctx.miterLimit=2;
-        ctx.strokeText(text,x,y);
-        ctx.fillStyle=fillCol;ctx.fillText(text,x,y);
-        ctx.restore();
-    };
 
-    // drawStatWithStreaks — no pill backgrounds, plain text lines in black
-    const drawStatWithStreaks=(label,val,col,streakList,streakLabel,showAllHits,hitPositions)=>{
-        ctx.save();
-        const perc=Math.round((val/totalCards)*100);
-
-        // Label — CENTERED at 400, same font as detail lines
-        ctx.font='bold 13px Arial';ctx.textAlign='center';ctx.fillStyle='#222';
-        ctx.fillText(label,400,curY+15);
-
-        // Value + percentage — centered, color of concept, thin outline
-        drawOutlineText(`${val} / ${totalCards}   (${perc}%)`,400,curY+34,col,'bold 16px Arial','center');
-
-        // Bar track
-        ctx.fillStyle='#e0e2e6';ctx.fillRect(70,curY+44,680,10);
-        ctx.fillStyle=col;ctx.fillRect(70,curY+44,(val/totalCards)*680,10);
-        curY+=60;
-
-        // Plain text line helper — no background, black text, same font as label
-        const drawLine=(text)=>{
-            ctx.font='bold 13px Arial';ctx.textAlign='left';ctx.fillStyle='#111';
-            ctx.fillText(text, 86, curY+14);
-            curY+=22;
-        };
-
-        // Acierto Directo: every hit, grouped by consecutive
-        if(showAllHits && hitPositions && hitPositions.length){
-            const groups=[];
-            hitPositions.forEach((pos,i)=>{
-                if(i===0||pos!==hitPositions[i-1]+1)groups.push([pos]);
-                else groups[groups.length-1].push(pos);
-            });
-            groups.forEach(g=>{
-                const text=g.length===1
-                    ?`Carta ${g[0]+1}`
-                    :`Cartas ${g[0]+1} a ${g[g.length-1]+1}  (${g.length} seguidas)`;
-                drawLine(text);
-            });
-            curY+=4;
-        }
-
-        // Pre/Post: show total sum first (below bar), then streak lines
-        if(!showAllHits && streakList && streakList.length){
-            const totalConsec=streakList.reduce((acc,str)=>acc+str.len,0);
-            // Total — shown right after bar, in the same style as number/percentage
-            drawOutlineText(`${totalConsec} Coincidencias`,400,curY+14,col,'bold 16px Arial','center');
-            curY+=24;
-            streakList.forEach(str=>{
-                const sc=str.end-str.len+2, ec=str.end+1;
-                const text=`${streakLabel}: ${str.len} seguidas — cartas ${sc} a ${ec}`;
-                drawLine(text);
-            });
-            curY+=4;
-        }
-        curY+=10;
-        ctx.restore();
-    };
 
     // Compute hit positions for direct hits (all positions)
     const directHitPositions=logsArr.map((ans,i)=>ans===(deckArr[i]&&deckArr[i].id)?i:-1).filter(x=>x>=0);
 
     // Streaks≥2 for pre/post (computed fresh — threshold 2 for display here)
-    const computeStreaks2=(logsA,deckA,key)=>{
-        const list=[];let run=0;
-        logsA.forEach((ans,i)=>{
-            const hit=key==='pre'?(i+1<logsA.length&&ans===(deckA[i+1]&&deckA[i+1].id))
-                                 :(i>0&&ans===(deckA[i-1]&&deckA[i-1].id));
-            if(hit)run++;
-            else{if(run>=2)list.push({end:i-1,len:run});run=0;}
-        });
-        if(run>=2)list.push({end:logsA.length-1,len:run});
-        return list;
-    };
-    const preStreaks2=computeStreaks2(logsArr,deckArr,'pre');
-    const postStreaks2=computeStreaks2(logsArr,deckArr,'post');
 
-    drawStatWithStreaks('ACIERTOS DIRECTOS',d,'#3fb950',null,'',true,directHitPositions);
-    drawStatWithStreaks('PRECOGNICIÓN',p,'#1f6feb',preStreaks2,'Racha Adelantada',false,null);
-    drawStatWithStreaks('POSTCOGNICIÓN',ps,'#f85149',postStreaks2,'Racha Atrasada',false,null);
+    const preStreaks2=_brComputeStreaks(logsArr,deckArr,'pre');
+    const postStreaks2=_brComputeStreaks(logsArr,deckArr,'post');
+
+    curY=_brStatBars(ctx,curY,totalCards,'ACIERTOS DIRECTOS',d,'#3fb950',null,'',true,directHitPositions);
+    curY=_brStatBars(ctx,curY,totalCards,'PRECOGNICIÓN',p,'#1f6feb',preStreaks2,'Racha Adelantada',false,null);
+    curY=_brStatBars(ctx,curY,totalCards,'POSTCOGNICIÓN',ps,'#f85149',postStreaks2,'Racha Atrasada',false,null);
     curY+=12;
 
     // 5. SEQUENCE — no legend, custom name headers larger, symbols+lines centered
