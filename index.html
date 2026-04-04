@@ -195,6 +195,12 @@
 <div class="container hidden" id="scr-final-notes">
     <h1>Conclusión</h1>
     <div class="subtitle">Análisis Subjetivo</div>
+    <div class="config-card" style="margin-bottom:14px;">
+        <div class="input-group" style="margin-bottom:0;">
+            <label>Nombre de la Sesión <span style="font-size:0.65rem;color:var(--gray);font-weight:normal;">(opcional)</span></label>
+            <input type="text" id="autoSessionLabel" placeholder="Ej: Sesión matutina · Prueba apertura..." maxlength="60"/>
+        </div>
+    </div>
     <div class="config-card">
         <div class="input-group">
             <label>Observaciones Finales</label>
@@ -204,7 +210,7 @@
             El sistema procesará la correlación estadística completa y generará un informe técnico de alta resolución.
         </p>
     </div>
-    <button class="btn-primary" onclick="processReport()">Generar Reporte</button>
+    <button class="btn-primary" onclick="confirmAutoReport()">Generar Reporte</button>
 </div>
 
 <!-- PANTALLA 4: REPORTE -->
@@ -718,6 +724,12 @@
 <div class="container hidden" id="scr-sync-final">
     <h1>Conclusión</h1>
     <div class="subtitle">INTG Sync</div>
+    <div class="config-card" style="margin-bottom:14px;">
+        <div class="input-group" style="margin-bottom:0;">
+            <label>Nombre de Sesión <span style="font-weight:normal;color:var(--gray);">(opcional)</span></label>
+            <input type="text" id="syncSessionLabelInput" placeholder="Ej: Grupo A · Sesión 3 · Mayo 2026"/>
+        </div>
+    </div>
     <div class="config-card">
         <div class="input-group">
             <label>Observaciones Finales</label>
@@ -895,6 +907,15 @@
             ⚠ Hay participantes que no han respondido. Puedes esperar o forzar avance (se marcará como omisión).
         </div>
     </div>
+    <!-- Participant offline alert -->
+    <div id="syncHostOfflineAlert" style="display:none;margin-bottom:10px;background:rgba(248,81,73,0.08);border:1px solid rgba(248,81,73,0.35);border-radius:10px;padding:10px 14px;font-size:0.75rem;color:#f85149;">
+        ⚠ <strong class="offline-names"></strong> se desconectó — puede reconectarse con el enlace de sala.
+    </div>
+    <!-- All participants finalized alert -->
+    <div id="syncHostAllFinalizedAlert" style="display:none;margin-bottom:10px;background:rgba(63,185,80,0.08);border:1px solid rgba(63,185,80,0.35);border-radius:10px;padding:10px 14px;font-size:0.75rem;color:#3fb950;align-items:center;justify-content:space-between;gap:8px;">
+        <span>✓ Todos los participantes finalizaron su participación.</span>
+        <button onclick="endSyncOnlineSession()" style="background:#3fb950;border:none;color:#000;padding:7px 12px;border-radius:7px;font-size:0.72rem;font-weight:bold;cursor:pointer;white-space:nowrap;-webkit-appearance:none;">Terminar sesión</button>
+    </div>
     <button onclick="syncOnlineNextCard()" id="syncHostNextBtn" class="btn-primary">Siguiente Carta →</button>
     <button onclick="forceNextSyncCard()" id="syncHostForceBtn" style="display:none;margin-top:8px;background:transparent;border:1px solid var(--danger);color:var(--danger);padding:12px;border-radius:10px;width:100%;cursor:pointer;font-size:0.8rem;font-weight:bold;-webkit-appearance:none;appearance:none;">⚡ Forzar avance (omitir sin respuesta)</button>
 
@@ -914,13 +935,19 @@
 <div class="container hidden" id="scr-sync-guest-final">
     <h1>Mis Observaciones</h1>
     <div class="subtitle" id="syncGuestFinalSubtitle">INTG Sync</div>
+    <div class="config-card" style="margin-bottom:14px;">
+        <div class="input-group" style="margin-bottom:0;">
+            <label>Nombre de la Sesión <span style="font-size:0.65rem;color:var(--gray);font-weight:normal;">(opcional)</span></label>
+            <input type="text" id="syncGuestSessionLabel" placeholder="Ej: Grupo martes · Prueba apertura..." maxlength="60"/>
+        </div>
+    </div>
     <div class="config-card">
         <div class="input-group">
             <label>¿Cómo te sentiste durante la sesión?</label>
             <textarea id="syncGuestFinalNotes" placeholder="Describe sensaciones, percepciones o comentarios personales..."></textarea>
         </div>
     </div>
-    <button class="btn-primary" onclick="processSyncGuestReport()">Generar Mi Reporte</button>
+    <button class="btn-primary" onclick="confirmSyncGuestReport()">Generar Mi Reporte</button>
 </div>
 
 <!-- PANTALLA 23: INTG SYNC ONLINE — REPORTE RECEPTOR -->
@@ -977,7 +1004,8 @@
     <h1>Historial de Rankings</h1>
     <div class="subtitle">Sesiones INTG Sync guardadas</div>
     <div id="rankingHistoryList" style="margin-bottom:16px;"></div>
-    <button class="btn-outline" onclick="showSetup()" style="border-color:#1f6feb;color:#58a6ff;">⌂ Volver al Inicio</button>
+    <button class="btn-outline" onclick="showSyncRanking()" style="border-color:#3fb950;color:#3fb950;margin-bottom:10px;">← Regresar al Ranking actual</button>
+    <button class="btn-outline" onclick="showSetup()" style="margin-top:10px;border-color:#1f6feb;color:#58a6ff;">⌂ Volver al Inicio</button>
 </div>
 
 <!-- PANTALLA: REPORTE DESDE HISTORIAL -->
@@ -3223,10 +3251,28 @@ function syncNextCard(){
 function goToSyncFinalNotes(){
     hideAll();
     document.getElementById('scr-sync-final').classList.remove('hidden');
+    const sli=document.getElementById('syncSessionLabelInput');
+    if(sli) sli.value='';
     window.scrollTo(0,0);
 }
 
 function processSyncReport(){
+    const labelVal=(document.getElementById('syncSessionLabelInput')&&document.getElementById('syncSessionLabelInput').value.trim())||'';
+    if(!labelVal){
+        showConfirm(
+            '¿Continuar sin nombrar la sesión?',
+            'Puedes agregar un nombre para identificar esta sesión fácilmente en el historial. Si continúas sin nombre, quedará guardada solo con fecha y código de sala.',
+            function(){
+                syncSessionLabel='';
+                _doProcessSyncReport();
+            }
+        );
+        return;
+    }
+    syncSessionLabel=labelVal;
+    _doProcessSyncReport();
+}
+function _doProcessSyncReport(){
     const finNotes=document.getElementById('syncFinalNotes').value.trim();
     hideAll();
     document.getElementById('scr-sync-report').classList.remove('hidden');
@@ -3660,7 +3706,33 @@ function confirmJoinSync(){
         // Check if already registered with this uid to avoid duplicate
         const existingMember=roomData.members&&roomData.members[uid];
         if(existingMember){
-            // Already registered — just show waiting and listen
+            // Returning member — use ORIGINAL name from Firebase, not what user typed
+            const originalName=existingMember.name||guestName;
+            syncGuestDisplayName=originalName;
+            // Update sessionStorage with original name
+            try{sessionStorage.setItem('zener_guest_session',JSON.stringify({code:syncRoomId,uid:uid,name:originalName}));}catch(e){}
+            // Mark as online again (refresh recovery)
+            if(rtdb) rtdb.ref('sync/'+syncRoomId+'/members/'+uid+'/online').set(true).then(function(){
+                rtdb.ref('sync/'+syncRoomId+'/members/'+uid+'/online').onDisconnect().set(false);
+            }).catch(function(){});
+            // Clear 'finalized' if they're rejoining
+            if(rtdb) rtdb.ref('sync/'+syncRoomId+'/members/'+uid+'/finalized').set(false).catch(function(){});
+            // If session already active, go directly to session
+            if(roomData.status==='active'){
+                syncDeck=Array.isArray(roomData.deck)?roomData.deck:(roomData.deck&&typeof roomData.deck==='object'?Object.values(roomData.deck):[]);
+                hideAll();
+                document.getElementById('scr-sync-guest').classList.remove('hidden');
+                document.getElementById('syncGuestWaiting').style.display='block';
+                const joinBtn2=document.querySelector('#scr-sync-guest .btn-primary');
+                if(joinBtn2) joinBtn2.style.display='none';
+                const nameInp2=document.getElementById('syncGuestName');
+                if(nameInp2) nameInp2.style.display='none';
+                const nudge2=document.getElementById('syncLoginNudge');
+                if(nudge2) nudge2.style.display='none';
+                _attachSyncGuestListeners(uid, originalName);
+                showToast('Reconectado — continuando sesión','#3fb950');
+                return;
+            }
             document.getElementById('syncGuestWaiting').style.display='block';
             const joinBtn=document.querySelector('#scr-sync-guest .btn-primary');
             if(joinBtn) joinBtn.style.display='none';
@@ -3668,14 +3740,16 @@ function confirmJoinSync(){
             if(nameInp) nameInp.style.display='none';
             const nudge=document.getElementById('syncLoginNudge');
             if(nudge) nudge.style.display='none';
-            _attachSyncGuestListeners(uid, guestName);
+            _attachSyncGuestListeners(uid, originalName);
             return;
         }
 
-        // Register new member
+        // Register new member with online presence
         return rtdb.ref('sync/'+syncRoomId+'/members/'+uid).set({
-            name:guestName, uid:uid, answers:{}
+            name:guestName, uid:uid, answers:{}, online:true, finalized:false
         }).then(function(){
+            // Set onDisconnect to mark offline
+            rtdb.ref('sync/'+syncRoomId+'/members/'+uid+'/online').onDisconnect().set(false);
             document.getElementById('syncGuestWaiting').style.display='block';
             const joinBtn=document.querySelector('#scr-sync-guest .btn-primary');
             if(joinBtn) joinBtn.style.display='none';
@@ -3790,15 +3864,22 @@ function showSyncHostSession(){
         const el=document.getElementById('syncLiveResponses');
         if(!el) return;
 
-        // Build live responses display
+        // Build live responses display with presence indicators
         const lines=memberList.map(function(m){
             const ans=m.answers&&m.answers[syncStep];
             const sym=ans?SYMBOLS.find(function(s){return s.id===ans;}):null;
             const label=sym?sym.n:(ans||'...');
             const answered=!!ans&&ans!=='skip';
+            const isOffline=m.online===false;
+            const isFinalized=m.finalized===true;
+            let statusColor='var(--gray)';
+            let statusText='esperando...';
+            if(answered){ statusColor='#3fb950'; statusText='✓ '+label; }
+            else if(isFinalized){ statusColor='var(--danger)'; statusText='✓ Finalizó'; }
+            else if(isOffline){ statusColor='#f85149'; statusText='⚠ Desconectado'; }
             return '<div style="padding:4px 0;display:flex;justify-content:space-between;align-items:center;">'
-                +'<span style="color:var(--white);font-weight:bold;">'+m.name+'</span>'
-                +'<span style="color:'+(answered?'#3fb950':'var(--gray)')+';">'+(answered?'✓ '+label:'esperando...')+'</span>'
+                +'<span style="color:'+(isOffline&&!answered?'#f85149':'var(--white)')+';font-weight:bold;">'+m.name+(isOffline&&!answered?' 🔴':'')+'</span>'
+                +'<span style="color:'+statusColor+';">'+statusText+'</span>'
                 +'</div>';
         });
         el.innerHTML=lines.join('')||'Esperando respuestas...';
@@ -3808,9 +3889,32 @@ function showSyncHostSession(){
             if(!syncOnlineResults[m.uid||m.name]) syncOnlineResults[m.uid||m.name]={name:m.name,answers:{}};
             if(m.answers) Object.assign(syncOnlineResults[m.uid||m.name].answers, m.answers);
         });
-        // NOTE: warning/force buttons are NOT shown here — only on "Siguiente carta" click
-        // BUT we DO auto-hide them if all participants answered after warning was shown
+
+        // Alert host if any participant just went offline
+        const offlineMembers=memberList.filter(function(m){return m.online===false&&!m.finalized;});
+        const hostOfflineAlert=document.getElementById('syncHostOfflineAlert');
+        if(hostOfflineAlert){
+            if(offlineMembers.length>0){
+                hostOfflineAlert.style.display='block';
+                hostOfflineAlert.querySelector('.offline-names').textContent=
+                    offlineMembers.map(function(m){return m.name;}).join(', ');
+            } else {
+                hostOfflineAlert.style.display='none';
+            }
+        }
+
+        // Check if ALL active participants finalized early
+        const activeMemberList=memberList.filter(function(m){return m.online!==false&&!m.finalized;});
+        const finalizedList=memberList.filter(function(m){return m.finalized===true;});
+        const allFinalized=memberList.length>0&&finalizedList.length===memberList.length;
+        const hostFinalAlert=document.getElementById('syncHostAllFinalizedAlert');
+        if(hostFinalAlert){
+            hostFinalAlert.style.display=allFinalized?'block':'none';
+        }
+
+        // Auto-hide warning/force if all active answered
         const allNowAnswered=memberList.length>0&&memberList.every(function(m){
+            if(m.finalized||m.online===false) return true; // skip offline/finalized
             return m.answers&&m.answers[syncStep]&&m.answers[syncStep]!=='skip';
         });
         if(allNowAnswered){
@@ -3860,14 +3964,25 @@ async function syncOnlineNextCard(){
         const snap=await rtdb.ref('sync/'+syncRoomId+'/members').once('value');
         const members=snap.val()||{};
         const memberList=Object.values(members).filter(function(m){return m&&m.name;});
-        const pending=memberList.filter(function(m){return !(m.answers&&m.answers[syncStep]&&m.answers[syncStep]!=='skip');});
+        // Active = online and not finalized early
+        const activeMembers=memberList.filter(function(m){return m.online!==false&&!m.finalized;});
+        const allFinalized=memberList.length>0&&memberList.every(function(m){return m.finalized===true;});
+
+        // If all finalized, block advance and prompt host to end
+        if(allFinalized){
+            showToast('Todos los participantes finalizaron — termina la sesión','#3fb950');
+            return;
+        }
+
+        // Only require answers from active (non-offline, non-finalized) members
+        const pending=activeMembers.filter(function(m){return !(m.answers&&m.answers[syncStep]&&m.answers[syncStep]!=='skip');});
 
         if(pending.length>0){
             const warn=document.getElementById('syncPendingWarning');
             const forceBtn=document.getElementById('syncHostForceBtn');
             if(warn) warn.style.display='block';
             if(forceBtn) forceBtn.style.display='block';
-            showToast(pending.length+' participante(s) aún no han respondido','#f85149');
+            showToast(pending.length+' participante(s) activo(s) aún no han respondido','#f85149');
             return;
         }
 
@@ -3950,6 +4065,8 @@ async function endSyncOnlineSession(){
     document.getElementById('scr-sync-final').classList.remove('hidden');
     // Reuse existing observations screen for host
     document.getElementById('syncFinalNotes').value='';
+    const sli2=document.getElementById('syncSessionLabelInput');
+    if(sli2) sli2.value='';
     window.scrollTo(0,0);
 }
 
@@ -4057,12 +4174,14 @@ function startSyncGuestSession(room, guestName){
             'Tu reporte cubrirá únicamente las cartas que respondiste. Las demás quedarán como omisión.',
             function(){
                 haptic(HAPTIC.end);
-                // Mark remaining unanswered cards as skip
                 if(uid&&rtdb){
                     const updates={};
+                    // Mark remaining as skip
                     for(let i=syncStep;i<syncDeck.length;i++){
                         updates['members/'+uid+'/answers/'+i]='skip';
                     }
+                    // Mark as finalized so host knows this guest is done
+                    updates['members/'+uid+'/finalized']=true;
                     rtdb.ref('sync/'+syncRoomId).update(updates).catch(function(){});
                 }
                 syncListeners.forEach(function(fn){fn();});
@@ -4458,6 +4577,7 @@ function saveCurrentRankingToHistory(){
     const entry={
         id:Date.now(),
         key:key,
+        label:syncSessionLabel||'',
         date:dateStr,
         time:new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),
         mode:syncRole==='host'?'Online':'Local',
@@ -4483,11 +4603,103 @@ function saveCurrentRankingToHistory(){
     saveRankingHistory(h);
 }
 
+let _rankHistOrigin='';
+let syncSessionLabel='';
+
+// ── SESSION LABEL HELPERS ─────────────────────────────────────────────────
+function escHtml(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function _confirmContinueWithoutLabel(onConfirm){
+    showConfirm(
+        '¿Continuar sin nombrar la sesión?',
+        'No has escrito un nombre para esta sesión. Puedes identificarla después desde el Historial de Rankings.',
+        onConfirm
+    );
+}
+
+// Auto Test wrapper
+function confirmAutoReport(){
+    const label=(document.getElementById('autoSessionLabel')||{}).value||'';
+    if(!label.trim()){
+        _confirmContinueWithoutLabel(function(){ processReport(); });
+    } else {
+        processReport();
+    }
+}
+
+// INTG Sync Local/Online host wrapper
+function confirmSyncReport(){
+    const label=(document.getElementById('syncSessionLabelInput')||{}).value||'';
+    if(!label.trim()){
+        _confirmContinueWithoutLabel(function(){ processSyncReport(); });
+    } else {
+        processSyncReport();
+    }
+}
+
+// INTG Sync Online guest wrapper
+function confirmSyncGuestReport(){
+    const label=(document.getElementById('syncGuestSessionLabel')||{}).value||'';
+    if(!label.trim()){
+        _confirmContinueWithoutLabel(function(){ processSyncGuestReport(); });
+    } else {
+        processSyncGuestReport();
+    }
+}
+
+// Rename a saved ranking entry from history
+function promptRenameEntry(ei){
+    const h=getRankingHistory();
+    const entry=h[ei];
+    if(!entry) return;
+    const current=entry.label||'';
+    // Build inline rename UI via showConfirm-style modal
+    const modal=document.createElement('div');
+    modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:9998;padding:20px;';
+    modal.innerHTML='<div style="background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:24px;width:100%;max-width:360px;">'
+        +'<div style="font-size:0.8rem;font-weight:bold;color:var(--white);margin-bottom:12px;">Nombre de la sesión</div>'
+        +'<input id="_renameInp" type="text" value="'+escHtml(current)+'" maxlength="60" placeholder="Escribe un nombre..." style="width:100%;margin-bottom:16px;"/>'
+        +'<div style="display:flex;gap:10px;">'
+        +'<button id="_renameCancel" style="flex:1;background:transparent;border:1px solid var(--border);color:var(--gray);padding:12px;border-radius:10px;cursor:pointer;font-weight:bold;font-size:0.8rem;-webkit-appearance:none;">Cancelar</button>'
+        +'<button id="_renameOk" style="flex:1;background:var(--accent);border:none;color:#fff;padding:12px;border-radius:10px;cursor:pointer;font-weight:bold;font-size:0.8rem;-webkit-appearance:none;">Guardar</button>'
+        +'</div></div>';
+    document.body.appendChild(modal);
+    const inp=document.getElementById('_renameInp');
+    if(inp){ inp.focus(); inp.select(); }
+    document.getElementById('_renameCancel').onclick=function(){ modal.remove(); };
+    document.getElementById('_renameOk').onclick=function(){
+        const newLabel=inp?inp.value.trim():'';
+        h[ei].label=newLabel;
+        saveRankingHistory(h);
+        modal.remove();
+        renderRankingHistory();
+    };
+}
+// ── END SESSION LABEL HELPERS ─────────────────────────────────────────────
 function showRankingHistory(){
+    // Track origin screen for back button
+    _rankHistOrigin='';
+    ALL.forEach(function(id){
+        const el=document.getElementById(id);
+        if(el&&!el.classList.contains('hidden')) _rankHistOrigin=id;
+    });
     hideAll();
     document.getElementById('scr-ranking-history').classList.remove('hidden');
+    // Update back button
+    const bb=document.getElementById('rankHistBackBtn');
+    if(bb){
+        if(_rankHistOrigin==='scr-sync-report'||_rankHistOrigin==='scr-sync-ranking'){
+            bb.style.display='block';
+            bb.textContent=_rankHistOrigin==='scr-sync-report'?'← Regresar a Reportes':'← Regresar al Ranking';
+        } else { bb.style.display='none'; }
+    }
     renderRankingHistory();
     window.scrollTo(0,0);
+}
+function _goBackFromRankHistory(){
+    if(_rankHistOrigin==='scr-sync-report'){hideAll();document.getElementById('scr-sync-report').classList.remove('hidden');}
+    else if(_rankHistOrigin==='scr-sync-ranking') showSyncRanking();
+    else showSetup();
 }
 
 function renderRankingHistory(){
@@ -4520,7 +4732,11 @@ function renderRankingHistory(){
             +'<div style="font-size:0.65rem;color:var(--gray);">'+infoLine+'</div>'
             +'<button onclick="deleteRankingEntry('+ei+')" style="background:none;border:none;color:var(--gray);cursor:pointer;font-size:0.75rem;padding:2px 6px;" title="Eliminar">✕</button>'
             +'</div>'
-            +(entry.roomId?'<div style="font-size:0.6rem;color:#58a6ff;margin-bottom:8px;">Sala: '+entry.roomId+'</div>':'')
+            +(entry.roomId||entry.label?'<div style="font-size:0.6rem;color:#58a6ff;margin-bottom:8px;display:flex;align-items:center;gap:10px;">'
+                +(entry.roomId?'<span>Sala: '+entry.roomId+'</span>':'')
+                +(entry.label?'<span style="flex:1;text-align:center;color:#8b949e;">'+entry.label+'</span>':'')
+                +'<button onclick="event.stopPropagation();promptRenameEntry('+ei+')" style="background:none;border:none;color:var(--gray);cursor:pointer;font-size:0.65rem;padding:0 4px;" title="Renombrar sesión">✏</button>'
+                +'</div>':'')
             +'<div style="font-size:0.6rem;color:var(--gray);margin-bottom:8px;">Toca un participante para ver su reporte completo</div>'
             +rows+'</div>';
     }).join('');
@@ -5192,45 +5408,51 @@ function checkPartyURLParam(){
     if(syncCode&&syncCode.length===4){
         const code=syncCode.toUpperCase();
         setTimeout(function(){
-            // Check room status before showing guest screen
-            if(rtdb){
-                rtdb.ref('sync/'+code).once('value').then(function(snap){
-                    if(!snap.exists()){
-                        showToast('Sala no encontrada o expirada','#f85149');
-                        return;
-                    }
-                    const status=snap.val().status;
-                    if(status==='ended'){
-                        showToast('Esta sesión ya ha terminado','#f85149');
-                        setTimeout(function(){showSetup();},1800);
-                        return;
-                    }
-                    // Room exists and is active/waiting — show guest screen
-                    syncRoomId=code;
-                    syncRole='guest';
+            // Check for existing guest session (refresh recovery)
+            let storedGuest=null;
+            try{const sg=sessionStorage.getItem('zener_guest_session');if(sg){const p=JSON.parse(sg);if(p.code===code)storedGuest=p;}}catch(e){}
+
+            const doShowScreen=function(roomData){
+                if(roomData&&roomData.status==='ended'){
+                    showToast('Esta sesión ya ha terminado','#f85149');
+                    setTimeout(function(){showSetup();},1800);
+                    return;
+                }
+                syncRoomId=code;
+                syncRole='guest';
+
+                if(storedGuest){
+                    // Returning guest — recover uid + name, auto-join silently
+                    syncGuestUid=storedGuest.uid;
+                    syncGuestDisplayName=storedGuest.name;
+                    // Pre-fill name field (read-only visual)
+                    const nameInp=document.getElementById('syncGuestName');
+                    if(nameInp) nameInp.value=storedGuest.name;
+                    // Auto-confirm
+                    hideAll();
+                    document.getElementById('scr-sync-guest').classList.remove('hidden');
+                    document.getElementById('syncGuestRoomCode').textContent='Sala: '+code;
+                    showToast('Reconectando como '+storedGuest.name+'...','#58a6ff');
+                    // Small delay so Firebase is ready
+                    setTimeout(function(){ confirmJoinSync(); },400);
+                } else {
+                    // New guest — show name screen
                     hideAll();
                     document.getElementById('scr-sync-guest').classList.remove('hidden');
                     document.getElementById('syncGuestRoomCode').textContent='Sala: '+code;
                     const nudge=document.getElementById('syncLoginNudge');
                     if(nudge) nudge.style.display=(currentUser||(auth&&auth.currentUser))?'none':'flex';
                     showToast('Sala INTG Sync: '+code,'#58a6ff');
-                }).catch(function(){
-                    // Firebase not ready yet — fall back to just showing the screen
-                    syncRoomId=code;
-                    syncRole='guest';
-                    hideAll();
-                    document.getElementById('scr-sync-guest').classList.remove('hidden');
-                    document.getElementById('syncGuestRoomCode').textContent='Sala: '+code;
-                    showToast('Sala INTG Sync: '+code,'#58a6ff');
-                });
+                }
+            };
+
+            if(rtdb){
+                rtdb.ref('sync/'+code).once('value').then(function(snap){
+                    if(!snap.exists()){showToast('Sala no encontrada o expirada','#f85149');return;}
+                    doShowScreen(snap.val());
+                }).catch(function(){ doShowScreen(null); });
             } else {
-                // No Firebase yet — show screen and let confirmJoinSync handle status check
-                syncRoomId=code;
-                syncRole='guest';
-                hideAll();
-                document.getElementById('scr-sync-guest').classList.remove('hidden');
-                document.getElementById('syncGuestRoomCode').textContent='Sala: '+code;
-                showToast('Sala INTG Sync: '+code,'#58a6ff');
+                doShowScreen(null);
             }
         },1200);
     }
