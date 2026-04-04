@@ -854,8 +854,9 @@
     </div>
     <!-- Active session UI — hidden when session ends -->
     <div id="syncOnlineActiveUI">
-        <!-- Participant name -->
-        <div id="syncOnlineParticipantName" style="font-size:0.72rem;color:#58a6ff;font-weight:bold;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;text-align:center;"></div>
+        <!-- Participant name + role -->
+        <div id="syncOnlineParticipantName" style="font-size:0.72rem;color:#58a6ff;font-weight:bold;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;text-align:center;"></div>
+        <div style="font-size:0.6rem;color:var(--gray);text-transform:uppercase;letter-spacing:1px;text-align:center;margin-bottom:10px;">Participante</div>
         <!-- Card always hidden -->
         <div class="card-display"><div class="hidden-mark">?</div></div>
         <!-- Perception label -->
@@ -897,8 +898,11 @@
 <div class="container hidden" id="scr-sync-host-session">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
         <span id="syncHostStep" style="font-weight:bold;color:var(--text);font-family:monospace;letter-spacing:1px;">CARTA 01 / 25</span>
-        <span style="font-size:0.65rem;color:var(--accent);font-weight:bold;">EMISOR</span>
+        <button onclick="resetApp()" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:0.7rem;font-weight:bold;text-transform:uppercase;">REINICIAR</button>
     </div>
+    <!-- Emisor name — same style as participant name in guest screen -->
+    <div id="syncHostNameDisplay" style="font-size:0.72rem;color:#58a6ff;font-weight:bold;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;text-align:center;"></div>
+    <div style="font-size:0.6rem;color:var(--gray);text-transform:uppercase;letter-spacing:1px;text-align:center;margin-bottom:10px;">Emisor</div>
     <div class="card-display" id="syncHostCard"></div>
     <div class="config-card" style="margin:14px 0;">
         <div style="font-size:0.65rem;font-weight:bold;color:#58a6ff;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Respuestas en tiempo real</div>
@@ -3811,6 +3815,13 @@ function _attachSyncGuestListeners(uid, guestName){
 async function startSyncOnlineSession(){
     try{
         if(!rtdb||!syncRoomId) return;
+        // Require at least 1 participant besides the host
+        const membSnap=await rtdb.ref('sync/'+syncRoomId+'/members').once('value');
+        const membCount=Object.values(membSnap.val()||{}).filter(function(m){return m&&m.name;}).length;
+        if(membCount===0){
+            showToast('Agrega al menos 1 participante antes de iniciar','#f85149');
+            return;
+        }
         // Assign to GLOBAL variables so reports use the correct values
         totalCards=parseInt(document.getElementById('syncHostTotalCards').value);
         colorLevel=parseInt(document.getElementById('syncHostColorLevel').value);
@@ -3848,6 +3859,9 @@ async function startSyncOnlineSession(){
 function showSyncHostSession(){
     hideAll();
     document.getElementById('scr-sync-host-session').classList.remove('hidden');
+    // Show emisor name in header
+    const nameDisp=document.getElementById('syncHostNameDisplay');
+    if(nameDisp) nameDisp.textContent=syncEmisorName||'Emisor';
     drawSyncHostCard();
     syncOnlineResults={};
     // Mark host as online and re-register onDisconnect
