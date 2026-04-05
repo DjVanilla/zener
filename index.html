@@ -1397,7 +1397,9 @@ function startSession(){
             const dc=colorLevel===1?'#000000':s.c;
             const isWav=s.id==='wav';
             const shadowOpacity=isWav&&dc!=='#000000'?0.22:0.65;
-            btn.innerHTML='<svg viewBox="0 0 100 100" stroke="'+dc+'" style="filter:drop-shadow(0 0 2px rgba(255,255,255,'+shadowOpacity+'))">'+SVGS[s.id]+'</svg><span>'+s.n+'</span>';
+            if(dc==='#000000'){btn.style.background='#ffffff';btn.style.borderColor='#d0d7de';}
+            else{btn.style.background='';btn.style.borderColor='';}
+            btn.innerHTML='<svg viewBox="0 0 100 100" stroke="'+dc+'" style="'+(dc==='#000000'?'':'filter:drop-shadow(0 0 2px rgba(255,255,255,'+shadowOpacity+'))')+'">'+SVGS[s.id]+'</svg><span>'+s.n+'</span>';
             btn.onclick=function(){
                 // Show selection outline via .selected class
                 const tapped=this;
@@ -3152,8 +3154,8 @@ function buildSyncResponseGrid(){
                 const shadowOpacity=isWav&&dc!=='#000000'?0.22:0.65;
                 const b=document.createElement('div');
                 b.className='opt-btn';
-                b.style.cssText='padding:8px 3px;';
-                b.innerHTML='<svg viewBox="0 0 100 100" stroke="'+dc+'" style="filter:drop-shadow(0 0 2px rgba(255,255,255,'+shadowOpacity+'))">'+SVGS[s.id]+'</svg><span>'+s.n+'</span>';
+                b.style.cssText='padding:8px 3px;'+(dc==='#000000'?'background:#ffffff;border-color:#d0d7de;':'');
+                b.innerHTML='<svg viewBox="0 0 100 100" stroke="'+dc+'" style="'+(dc==='#000000'?'':'filter:drop-shadow(0 0 2px rgba(255,255,255,'+shadowOpacity+'))')+'">'+SVGS[s.id]+'</svg><span>'+s.n+'</span>';
                 b.onclick=(function(pName,sId){
                     return function(){
                         const tapped=this;
@@ -4132,7 +4134,9 @@ function startSyncGuestSession(room, guestName){
         const dc=room.colorLevel===1?'#000000':s.c;
         const isWav=s.id==='wav';
         const shadowOpacity=isWav&&dc!=='#000000'?0.22:0.65;
-        btn.innerHTML='<svg viewBox="0 0 100 100" stroke="'+dc+'" style="filter:drop-shadow(0 0 2px rgba(255,255,255,'+shadowOpacity+'))">'+SVGS[s.id]+'</svg><span>'+s.n+'</span>';
+        if(dc==='#000000'){btn.style.background='#ffffff';btn.style.borderColor='#d0d7de';}
+        else{btn.style.background='';btn.style.borderColor='';}
+        btn.innerHTML='<svg viewBox="0 0 100 100" stroke="'+dc+'" style="'+(dc==='#000000'?'':'filter:drop-shadow(0 0 2px rgba(255,255,255,'+shadowOpacity+'))')+'">'+SVGS[s.id]+'</svg><span>'+s.n+'</span>';
         btn.onclick=(function(sId){return function(){
             if(!uid) return;
             const tapped=this;
@@ -5341,7 +5345,9 @@ function startPartyGuestSession(room){
         const dc=room.colorLevel===1?'#000000':s.c;
         const isWav=s.id==='wav';
         const shadowOpacity=isWav&&dc!=='#000000'?0.22:0.65;
-        btn.innerHTML=`<svg viewBox="0 0 100 100" stroke="${dc}" style="filter:drop-shadow(0 0 2px rgba(255,255,255,${shadowOpacity}))">${SVGS[s.id]}</svg><span>${s.n}</span>`;
+        if(dc==='#000000'){btn.style.background='#ffffff';btn.style.borderColor='#d0d7de';}
+        else{btn.style.background='';btn.style.borderColor='';}
+        btn.innerHTML=`<svg viewBox="0 0 100 100" stroke="${dc}" style="${dc==='#000000'?'':'filter:drop-shadow(0 0 2px rgba(255,255,255,'+shadowOpacity+'))'}">${SVGS[s.id]}</svg><span>${s.n}</span>`;
         btn.onclick=()=>recordPartyAnswer(s.id);
         grid.appendChild(btn);
     });
