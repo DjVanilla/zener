@@ -1642,6 +1642,7 @@ function renderAutoHistList(){
         const preC=calcStreakCoincidences(s.logsIds,s.deckIds,'pre');
         const postC=calcStreakCoincidences(s.logsIds,s.deckIds,'post');
         const coinLines=[
+            s.d>0?`<div style="font-size:0.72rem;font-weight:bold;color:#3fb950;line-height:1.6;">${s.d} acierto${s.d!==1?'s':''} directo${s.d!==1?'s':''}</div>`:'',
             preC>0?`<div style="font-size:0.72rem;font-weight:bold;color:#58a6ff;line-height:1.6;">${preC} coincidencia${preC!==1?'s':''} pre</div>`:'',
             postC>0?`<div style="font-size:0.72rem;font-weight:bold;color:#f85149;line-height:1.6;">${postC} coincidencia${postC!==1?'s':''} post</div>`:''
         ].join('');
@@ -1781,6 +1782,7 @@ function renderHistList(){
             const preC=calcStreakCoincidences(s.logsIds,s.deckIds,'pre');
             const postC=calcStreakCoincidences(s.logsIds,s.deckIds,'post');
             const coinLines=[
+                s.d>0?`<div style="font-size:0.72rem;font-weight:bold;color:#3fb950;line-height:1.6;">${s.d} acierto${s.d!==1?'s':''} directo${s.d!==1?'s':''}</div>`:'',
                 preC>0?`<div style="font-size:0.72rem;font-weight:bold;color:#58a6ff;line-height:1.6;">${preC} coincidencia${preC!==1?'s':''} pre</div>`:'',
                 postC>0?`<div style="font-size:0.72rem;font-weight:bold;color:#f85149;line-height:1.6;">${postC} coincidencia${postC!==1?'s':''} post</div>`:''
             ].join('');
