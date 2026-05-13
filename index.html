@@ -5099,9 +5099,13 @@ function initFirebase(retries){
 
 function _monitorFirebaseConnection(){
     if(!rtdb) return;
+    let wasConnected=false;
     rtdb.ref('.info/connected').on('value',function(snap){
-        if(snap.val()===false){
-            showToast('Sin conexión a Firebase — modo Online no disponible','#f85149');
+        if(snap.val()===true){
+            wasConnected=true;
+        } else if(snap.val()===false&&wasConnected){
+            // Only alert on drops AFTER initial connection — not on startup
+            showToast('Sin conexión a Firebase — reconectando...','#f85149');
         }
     });
 }
