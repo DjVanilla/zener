@@ -3,6 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Zener Lab">
+    <meta name="theme-color" content="#0d1117">
     <title>Zener Lab INTG City</title>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIgdmlld0JveD0iMCAwIDMyIDMyIj4KICA8cmVjdCB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHJ4PSI3IiBmaWxsPSIjMWY2ZmViIi8+CiAgPHRleHQgeD0iMTYiIHk9IjIzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iQXJpYWwgQmxhY2ssSW1wYWN0LHNhbnMtc2VyaWYiIGZvbnQtd2VpZ2h0PSI5MDAiIGZvbnQtc2l6ZT0iMjAiIGZpbGw9IiNmZmZmZmYiPlo8L3RleHQ+CiAgPHJlY3QgeD0iNiIgeT0iMjUiIHdpZHRoPSIyMCIgaGVpZ2h0PSIyLjUiIHJ4PSIxLjIiIGZpbGw9IiNmZmZmZmYiIG9wYWNpdHk9IjAuNSIvPgo8L3N2Zz4=">
     <link rel="shortcut icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIgdmlld0JveD0iMCAwIDMyIDMyIj4KICA8cmVjdCB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHJ4PSI3IiBmaWxsPSIjMWY2ZmViIi8+CiAgPHRleHQgeD0iMTYiIHk9IjIzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iQXJpYWwgQmxhY2ssSW1wYWN0LHNhbnMtc2VyaWYiIGZvbnQtd2VpZ2h0PSI5MDAiIGZvbnQtc2l6ZT0iMjAiIGZpbGw9IiNmZmZmZmYiPlo8L3RleHQ+CiAgPHJlY3QgeD0iNiIgeT0iMjUiIHdpZHRoPSIyMCIgaGVpZ2h0PSIyLjUiIHJ4PSIxLjIiIGZpbGw9IiNmZmZmZmYiIG9wYWNpdHk9IjAuNSIvPgo8L3N2Zz4=">
@@ -2478,7 +2483,16 @@ function closeReportZoom(){ }
 function haptic(pattern){
     try{
         const vib=navigator.vibrate||navigator.webkitVibrate||navigator.mozVibrate||navigator.msVibrate;
-        if(vib) vib.call(navigator, pattern);
+        if(vib){ vib.call(navigator, pattern); return; }
+        // iOS fallback: brief visual pulse on the focused/active element
+        if(pattern===HAPTIC.tap){
+            const el=document.activeElement||document.querySelector('.opt-btn.selected');
+            if(el&&el.classList&&el.classList.contains('opt-btn')){
+                el.style.transition='opacity 0.08s';
+                el.style.opacity='0.5';
+                setTimeout(function(){el.style.opacity='';el.style.transition='';},80);
+            }
+        }
     }catch(e){}
 }
 const HAPTIC={
@@ -4237,46 +4251,33 @@ async function endSyncOnlineSession(){
     window.scrollTo(0,0);
 }
 
-function startSyncGuestSession(room, guestName){
-    syncDeck=Array.isArray(room.deck)?room.deck:(room.deck&&typeof room.deck==='object'?Object.values(room.deck):[]);
-    const user=currentUser||(auth&&auth.currentUser);
-    const uid=syncGuestUid||(user?user.uid:null);
-    syncGuestDisplayName=guestName;
-    // Set syncStep to current card in room (handles mid-session rejoin)
-    const currentCard=typeof room.currentCard==='number'?room.currentCard:0;
-    syncStep=currentCard;
-    // Mark any unanswered cards before current as 'skip' in Firebase (rejoin gaps)
-    if(uid&&rtdb&&currentCard>0){
-        const myAnswers=(room.members&&room.members[uid]&&room.members[uid].answers)||{};
-        const skipUpdates={};
-        for(let i=0;i<currentCard;i++){
-            if(myAnswers[i]===undefined||myAnswers[i]===null){
-                skipUpdates['members/'+uid+'/answers/'+i]='skip';
-            }
-        }
-        if(Object.keys(skipUpdates).length>0){
-            rtdb.ref('sync/'+syncRoomId).update(skipUpdates).catch(function(){});
+// ── startSyncGuestSession HELPERS ────────────────────────────────────────────
+function _guestFillSkips(uid, currentCard, room){
+    // Mark unanswered past cards as 'skip' for rejoin gaps
+    if(!uid||!rtdb||currentCard<=0) return;
+    const myAnswers=(room.members&&room.members[uid]&&room.members[uid].answers)||{};
+    const skipUpdates={};
+    for(let i=0;i<currentCard;i++){
+        if(myAnswers[i]===undefined||myAnswers[i]===null){
+            skipUpdates['members/'+uid+'/answers/'+i]='skip';
         }
     }
-    // Update step counter
-    const stepEl=document.getElementById('syncOnlineStep');
-    if(stepEl) stepEl.textContent='CARTA '+String(currentCard+1).padStart(2,'0')+' / '+syncDeck.length;
-    hideAll();
-    document.getElementById('scr-sync-online-session').classList.remove('hidden');
-    document.getElementById('syncOnlineRoomTag').textContent='INTG Sync · '+syncRoomId;
-    // Show participant name at top
-    const nameEl=document.getElementById('syncOnlineParticipantName');
-    if(nameEl) nameEl.textContent=guestName;
-    // Reset UI
-    const activeUI=document.getElementById('syncOnlineActiveUI');
-    const waitEl=document.getElementById('syncOnlineWaiting');
-    const endEl=document.getElementById('syncOnlineEndedNotice');
-    const gridEl=document.getElementById('syncOnlineGrid');
-    if(activeUI) activeUI.style.display='';
-    if(waitEl) waitEl.style.display='none';
-    if(endEl) endEl.style.display='none';
+    if(Object.keys(skipUpdates).length>0){
+        rtdb.ref('sync/'+syncRoomId).update(skipUpdates).catch(function(){});
+    }
+}
 
-    // Build symbol buttons
+function _guestSetPresence(uid){
+    // Mark guest as online + register onDisconnect
+    if(!uid||!rtdb) return;
+    rtdb.ref('sync/'+syncRoomId+'/members/'+uid+'/online').set(true)
+        .then(function(){
+            rtdb.ref('sync/'+syncRoomId+'/members/'+uid+'/online').onDisconnect().set(false);
+        }).catch(function(){});
+}
+
+function _guestBuildGrid(gridEl, waitEl, uid, room){
+    // Build symbol buttons for guest session
     gridEl.innerHTML='';
     SYMBOLS.forEach(function(s){
         const btn=document.createElement('div');
@@ -4303,6 +4304,42 @@ function startSyncGuestSession(room, guestName){
         };})(s.id);
         gridEl.appendChild(btn);
     });
+}
+
+function startSyncGuestSession(room, guestName){
+    syncDeck=Array.isArray(room.deck)?room.deck:(room.deck&&typeof room.deck==='object'?Object.values(room.deck):[]);
+    const user=currentUser||(auth&&auth.currentUser);
+    const uid=syncGuestUid||(user?user.uid:null);
+    syncGuestDisplayName=guestName;
+    const currentCard=typeof room.currentCard==='number'?room.currentCard:0;
+    syncStep=currentCard;
+
+    // Set presence + fill past skips (extracted helpers)
+    _guestSetPresence(uid);
+    _guestFillSkips(uid, currentCard, room);
+
+    // Update step counter
+    const stepEl=document.getElementById('syncOnlineStep');
+    if(stepEl) stepEl.textContent='CARTA '+String(currentCard+1).padStart(2,'0')+' / '+syncDeck.length;
+
+    // Show session screen
+    hideAll();
+    document.getElementById('scr-sync-online-session').classList.remove('hidden');
+    document.getElementById('syncOnlineRoomTag').textContent='INTG Sync · '+syncRoomId;
+    const nameEl=document.getElementById('syncOnlineParticipantName');
+    if(nameEl) nameEl.textContent=guestName;
+
+    // Reset UI elements
+    const activeUI=document.getElementById('syncOnlineActiveUI');
+    const waitEl=document.getElementById('syncOnlineWaiting');
+    const endEl=document.getElementById('syncOnlineEndedNotice');
+    const gridEl=document.getElementById('syncOnlineGrid');
+    if(activeUI) activeUI.style.display='';
+    if(waitEl) waitEl.style.display='none';
+    if(endEl) endEl.style.display='none';
+
+    // Build symbol buttons (extracted helper)
+    _guestBuildGrid(gridEl, waitEl, uid, room);
 
     // Listen for card changes — re-enable grid on new card
     const cardRef=rtdb.ref('sync/'+syncRoomId+'/currentCard');
