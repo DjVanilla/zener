@@ -84,6 +84,25 @@
         .gap-fallback>*+*{margin-left:8px;}
         #toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#3fb950;color:#000;padding:10px 22px;border-radius:20px;font-size:0.85rem;font-weight:bold;opacity:0;transition:opacity 0.3s;pointer-events:none;z-index:999;}
     </style>
+    <script>
+    // ── GLOBAL ERROR BOUNDARY ────────────────────────────────────────────────
+    window.onerror=function(msg,src,line,col,err){
+        console.error('GLOBAL ERROR:',msg,'at',src+':'+line+':'+col,err);
+        try{
+            const toast=document.getElementById('toast');
+            if(toast){
+                toast.textContent='Error inesperado — recarga la página';
+                toast.style.background='#f85149';toast.style.color='#fff';
+                toast.style.opacity='1';
+                setTimeout(function(){toast.style.opacity='0';},4000);
+            }
+        }catch(e){}
+        return false;
+    };
+    window.addEventListener('unhandledrejection',function(e){
+        console.error('UNHANDLED PROMISE:',e.reason);
+    });
+    </script>
 </head>
 <body>
 <div id="toast"></div>
@@ -267,6 +286,7 @@
         </div>
     </div>
     <button class="btn-outline" onclick="showSetup()" style="margin-top:14px;border-color:#1f6feb;color:#58a6ff;">⌂ Volver al Inicio</button>
+    <button class="btn-outline" onclick="exportAllHistory()" style="margin-top:8px;border-color:#8b949e;color:#8b949e;">↓ Exportar Historial como JSON</button>
 </div>
 
 <!-- PANTALLA 5B: HISTORIAL AUTO TEST -->
@@ -306,7 +326,8 @@
             </div>
         </div>
     </div>
-    <button class="btn-outline" onclick="showSetup()" style="margin-top:14px;border-color:#1f6feb;color:#58a6ff;">⌂ Volver al Inicio</button>
+    <button class="btn-outline" onclick="exportAllHistory()" style="margin-top:8px;border-color:#8b949e;color:#8b949e;">↓ Exportar Historial como JSON</button>
+    <button class="btn-outline" onclick="showSetup()" style="margin-top:8px;border-color:#1f6feb;color:#58a6ff;">⌂ Volver al Inicio</button>
 </div>
 
 <!-- PANTALLA 6: REPORTE DE SESIÓN GUARDADA -->
@@ -1147,8 +1168,60 @@ function downloadPNG(canvasId,receptor){
 
 // ── localStorage with graceful fallback ───────────────────────────────────
 function getHistory(){try{return JSON.parse(localStorage.getItem('zener_history')||'[]');}catch(e){return[];}}
+
+function exportAllHistory(){
+    try{
+        const data={
+            version:1,
+            exportDate:new Date().toISOString(),
+            history:JSON.parse(localStorage.getItem('zener_history')||'[]'),
+            historyAuto:JSON.parse(localStorage.getItem('zener_history_auto')||'[]'),
+            rankingHistory:JSON.parse(localStorage.getItem('zener_ranking_history')||'[]')
+        };
+        const json=JSON.stringify(data,null,2);
+        const blob=new Blob([json],{type:'application/json'});
+        const url=URL.createObjectURL(blob);
+        const a=document.createElement('a');
+        const d=new Date();
+        a.download='zener-historial-'+d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')+'.json';
+        a.href=url;
+        document.body.appendChild(a);a.click();document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast('Historial exportado ✓','#3fb950');
+    }catch(e){showToast('Error al exportar: '+e.message,'#f85149');}
+}
+
+function checkLocalStorageQuota(){
+    try{
+        let total=0;
+        for(const key of['zener_history','zener_history_auto','zener_ranking_history']){
+            const v=localStorage.getItem(key)||'';
+            total+=v.length;
+        }
+        const kb=(total/1024).toFixed(1);
+        const pct=((total/(5*1024*1024))*100).toFixed(0);
+        if(total>4*1024*1024){
+            showToast('Historial al '+pct+'% de capacidad — exporta una copia','#f85149');
+        } else if(total>2*1024*1024){
+            showToast('Historial al '+pct+'% de capacidad ('+kb+' KB)','#58a6ff');
+        }
+    }catch(e){}
+}
 function saveHistory(h){try{localStorage.setItem('zener_history',JSON.stringify(h));}catch(e){showToast('Almacenamiento no disponible en este navegador','#f85149');}}
 function getAutoHistory(){try{return JSON.parse(localStorage.getItem('zener_history_auto')||'[]');}catch(e){return[];}}
+
+// ── localStorage health: trim oversized history (max 200 entries each) ──────
+function trimHistoryIfNeeded(){
+    ['zener_history','zener_history_auto','zener_ranking_history'].forEach(function(key){
+        try{
+            const arr=JSON.parse(localStorage.getItem(key)||'[]');
+            if(arr.length>200){
+                localStorage.setItem(key,JSON.stringify(arr.slice(-200)));
+                console.log('Trimmed',key,'to 200 entries');
+            }
+        }catch(e){}
+    });
+}
 function saveAutoHistory(h){try{localStorage.setItem('zener_history_auto',JSON.stringify(h));}catch(e){showToast('Almacenamiento no disponible en este navegador','#f85149');}}
 
 // ── NAVIGATION ─────────────────────────────────────────────────────────────
@@ -1168,6 +1241,7 @@ function showSetup(){
     const badge=document.getElementById('modeBadge');
     if(badge) badge.textContent='Test individual — carta oculta, sin Emisor.';
     updateAutoHistoryBtn();
+    trimHistoryIfNeeded();
     window.scrollTo(0,0);
 }
 function showSetupWithThanks(){
@@ -1182,7 +1256,7 @@ function showHistory(){
         b.classList.toggle('active', b.getAttribute('data-period')==='day');
     });
     if(document.getElementById('weekLabel')) document.getElementById('weekLabel').textContent='1 Semana';
-    renderHistList();renderChart();
+    renderHistList();renderChart();checkLocalStorageQuota();
 }
 function showHelp(){
     hideAll();
@@ -1199,7 +1273,7 @@ function showAutoHistory(){
         b.classList.toggle('active', b.getAttribute('data-period')==='day');
     });
     if(document.getElementById('weekLabelAuto')) document.getElementById('weekLabelAuto').textContent='1 Semana';
-    renderAutoHistList();renderAutoChart();
+    renderAutoHistList();renderAutoChart();checkLocalStorageQuota();
 }
 
 // ── RESET ──────────────────────────────────────────────────────────────────
@@ -1223,6 +1297,7 @@ function resetApp(){
     const btn=document.getElementById('btnSave');
     if(btn){btn.textContent='Guardar Sesión en Historial';btn.disabled=false;btn.style.color='';btn.style.borderColor='';btn.style.display='';}
     updateAutoHistoryBtn();
+    trimHistoryIfNeeded();
     window.scrollTo(0,0);
 }
 
@@ -2983,13 +3058,14 @@ function buildReport(ctx,cnv,P){
     // ctx.fillText('Desarrollado por @ARSifuentes',780,curY+78); // hidden
     } catch(err){
         console.error('buildReport error:', err);
-        // Show error visually on canvas so it's not silently blank
+        // Show error visually on canvas AND as toast
         cnv.width=800; cnv.height=200;
         ctx.fillStyle='#fff'; ctx.fillRect(0,0,800,200);
         ctx.fillStyle='#f85149'; ctx.font='bold 16px Arial'; ctx.textAlign='center';
         ctx.fillText('Error al generar reporte: '+err.message,400,100);
         ctx.font='12px Arial'; ctx.fillStyle='#888';
         ctx.fillText('Revisa la consola del navegador para más detalles.',400,130);
+        try{showToast('Error al generar reporte — '+err.message,'#f85149');}catch(e2){}
     }
     // Auto-enable pinch-to-zoom on this canvas after render
     if(cnv.id) setTimeout(function(){ enableCanvasZoom(cnv.id); },50);
@@ -3423,7 +3499,18 @@ function createSyncRoom(){
     const user=currentUser||(auth&&auth.currentUser);
     if(!user){showToast('Inicia sesión para crear una sala','#f85149');return;}
     if(!rtdb){showToast('Firebase no disponible','#f85149');return;}
-    const code=genRoomCode();
+    // Generate unique code — verify it doesn't already exist in Firebase
+    function tryCode(){
+        const code=genRoomCode();
+        rtdb.ref('sync/'+code).once('value').then(function(snap){
+            if(snap.exists()&&snap.val().status!=='ended'){
+                tryCode(); // collision — try again
+                return;
+            }
+            doCreateRoom(code);
+        }).catch(function(){doCreateRoom(genRoomCode());});
+    }
+    function doCreateRoom(code){
     syncRoomId=code;
     syncRole='host';
     rtdb.ref('sync/'+code).set({
@@ -3474,6 +3561,8 @@ function createSyncRoom(){
         window.scrollTo(0,0);
     }).catch(function(e){showToast('Error al crear sala: '+e.message,'#f85149');});
 }
+    } // end doCreateRoom
+    tryCode();
 
 // ── HOST RECOVERY ON REFRESH ────────────────────────────────────────────────
 function tryRecoverHostSession(user){
@@ -4987,6 +5076,7 @@ function initFirebase(retries){
         db=firebase.firestore();
         rtdb=firebase.database();
         setupAuthListener();
+        _monitorFirebaseConnection();
         return;
     }
     try{
@@ -4995,6 +5085,7 @@ function initFirebase(retries){
         db=firebase.firestore();
         rtdb=firebase.database();
         setupAuthListener();
+        _monitorFirebaseConnection();
         console.log('Firebase inicializado correctamente ✓');
         // Update debug status in auth bar
         const dbg=document.getElementById('authDebug');
@@ -5004,6 +5095,15 @@ function initFirebase(retries){
         const dbg=document.getElementById('authDebug');
         if(dbg) dbg.textContent='Error Firebase: '+e.message;
     }
+}
+
+function _monitorFirebaseConnection(){
+    if(!rtdb) return;
+    rtdb.ref('.info/connected').on('value',function(snap){
+        if(snap.val()===false){
+            showToast('Sin conexión a Firebase — modo Online no disponible','#f85149');
+        }
+    });
 }
 
 function setupAuthListener(){
