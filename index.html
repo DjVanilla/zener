@@ -3560,9 +3560,9 @@ function createSyncRoom(){
         syncListeners.push(function(){ref.off('value',off);});
         window.scrollTo(0,0);
     }).catch(function(e){showToast('Error al crear sala: '+e.message,'#f85149');});
-}
-    } // end doCreateRoom
+} // end doCreateRoom
     tryCode();
+}
 
 // ── HOST RECOVERY ON REFRESH ────────────────────────────────────────────────
 function tryRecoverHostSession(user){
