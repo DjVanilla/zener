@@ -1167,7 +1167,56 @@ function downloadPNG(canvasId,receptor){
 }
 
 // ── localStorage with graceful fallback ───────────────────────────────────
-function getHistory(){try{return JSON.parse(localStorage.getItem('zener_history')||'[]');}catch(e){return[];}}
+// Schema version — bump when session object shape changes
+const HISTORY_SCHEMA_VERSION=2;
+
+function _migrateSession(s){
+    if(!s||typeof s!=='object') return null;
+    const v=s._v||0;
+    if(v>=HISTORY_SCHEMA_VERSION) return s;
+    // v0→v1: add missing fields that may be absent in old sessions
+    if(!s.colorLevel)    s.colorLevel=1;
+    if(!s.seqNum)        s.seqNum=0;
+    if(!s.blind)         s.blind=true;
+    if(!s.deckIds)       s.deckIds=[];
+    if(!s.logsIds)       s.logsIds=[];
+    if(!s.streaks)       s.streaks={dir:[],pre:[],post:[]};
+    if(!s.obsNotes)      s.obsNotes='';
+    if(!s.finNotes)      s.finNotes='';
+    if(s.d===undefined)  s.d=0;
+    if(s.p===undefined)  s.p=0;
+    if(s.ps===undefined) s.ps=0;
+    if(s.dPct===undefined) s.dPct=s.totalCards?Math.round((s.d/s.totalCards)*100):0;
+    if(s.pPct===undefined) s.pPct=s.totalCards?Math.round((s.p/s.totalCards)*100):0;
+    if(s.psPct===undefined) s.psPct=s.totalCards?Math.round((s.ps/s.totalCards)*100):0;
+    // v1→v2: add emisor default for sessions saved without it
+    if(!s.emisor) s.emisor='Auto Test';
+    if(!s.receptor) s.receptor='Receptor';
+    s._v=HISTORY_SCHEMA_VERSION;
+    return s;
+}
+
+function _migrateAndSave(key, arr){
+    // Migrate all entries, filter out corrupt ones, resave if any changed
+    let changed=false;
+    const migrated=arr.map(function(s){
+        const orig=JSON.stringify(s);
+        const m=_migrateSession(s);
+        if(m&&JSON.stringify(m)!==orig) changed=true;
+        return m;
+    }).filter(Boolean);
+    if(changed){
+        try{ localStorage.setItem(key,JSON.stringify(migrated)); }catch(e){}
+    }
+    return migrated;
+}
+
+function getHistory(){
+    try{
+        const raw=JSON.parse(localStorage.getItem('zener_history')||'[]');
+        return _migrateAndSave('zener_history',raw);
+    }catch(e){return[];}
+}
 
 function exportAllHistory(){
     try{
@@ -1208,7 +1257,12 @@ function checkLocalStorageQuota(){
     }catch(e){}
 }
 function saveHistory(h){try{localStorage.setItem('zener_history',JSON.stringify(h));}catch(e){showToast('Almacenamiento no disponible en este navegador','#f85149');}}
-function getAutoHistory(){try{return JSON.parse(localStorage.getItem('zener_history_auto')||'[]');}catch(e){return[];}}
+function getAutoHistory(){
+    try{
+        const raw=JSON.parse(localStorage.getItem('zener_history_auto')||'[]');
+        return _migrateAndSave('zener_history_auto',raw);
+    }catch(e){return[];}
+}
 
 // ── localStorage health: trim oversized history (max 200 entries each) ──────
 function trimHistoryIfNeeded(){
@@ -1571,6 +1625,7 @@ function saveSession(){
     const seqNum=h.length+1;
     h.push({
         id:Date.now(),
+        _v:HISTORY_SCHEMA_VERSION,
         seqNum,
         date:new Date().toLocaleDateString('es-MX'),
         time:new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),
